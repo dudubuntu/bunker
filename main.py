@@ -32,8 +32,8 @@ class Player:
         self.cards = [first_card, second_card]
 
     def __str__(self):
-        str_card = f"{self.bio[0]} - {self.bio[1]} лет - {'Бесплоден' if self.bio[2] else 'Может иметь потомство'}\n{self.profession[0]}\n\tСтаж {self.profession[1]} лет\n"
-        str_card += f"{self.health[0]} - степень {self.health[1]} %\n{self.quality[0]} - выражено на {self.quality[1]} %\n"
+        str_card = f"{self.bio[0]} - {self.bio[1]} лет - {'Бесплоден' if self.bio[2] else 'Может иметь потомство'}\nРост - {self.parameters[0]}   Вес - {self.parameters[1]}\n{self.profession[0]}\n\tСтаж {self.profession[1]} лет\n"
+        str_card += f"{self.health[0]} - степень {self.health[1]} %\nЧеловеческие качества:\n\t{self.quality[0][0]} - выражено на {self.quality[0][1]} %\n\t{self.quality[1][0]} - выражено на {self.quality[1][1]} %\n"
         str_card += f"Фобия: {self.phobia}\nДополнительный навык: {self.skill}\nХобби: {self.hobby[0]} - {self.hobby[1]} лет\n"
         str_card += f"Багаж: {self.bagage}\n\nПервая карточка: {self.cards[0]}\n\nВторая карточка: {self.cards[1]}"
 
@@ -68,7 +68,7 @@ class Player:
         return self.health
 
     def change_bio(self):
-        self.bio = [random.choice(DATA['Биологическая характеристика']), random.randint(18, 90), random.choice([True, False])]
+        self.bio = [random.choice(DATA['Биологическая характеристика']), random.randint(18, 90), random.choice([True, True, True, False])]
         return self.bio
 
     def change_parameters(self):
@@ -76,7 +76,8 @@ class Player:
         return self.parameters
 
     def change_quality(self):
-        self.quality = [random.choice(DATA['Человеческое качество']), random.randint(1, 100)]
+        self.quality = [[random.choice(DATA['Человеческое качество']), random.randint(1, 100)],
+                        [random.choice(DATA['Человеческое качество']), random.randint(1, 100)]]
         return self.quality
 
     def change_phobia(self):
@@ -105,9 +106,12 @@ class Game:
             self.players.append(Player())
         self.show_players()
 
-        print('Начало игры:')
+        print('Начало игры:\n\n\n')
+        # print(random.choice(DATA['Локация']))
+        print(random.choice(DATA['Бункер']))
+        print(random.choice(DATA['Бункер']))
         while True:
-            print(f'[1 - {self.players_amount + 1}] - показать игрока\ns - показать всех игроков\n\nУ всех:\n\tp - изменить профессии\n\th - изменить здоровье\n\tb - изменить биологические характеристики\n\tpar - изменить параметры\n\n')
+            print(f'[1 - {self.players_amount}] - показать игрока\ns - показать всех игроков\n\nУ всех:\n\tp - изменить профессии\n\th - изменить здоровье\n\tb - изменить биологические характеристики\n\tpar - изменить параметры\n\n')
             while True:
                 command = input('Введите команду: ')
                 if len(command) == 3:
@@ -132,7 +136,7 @@ class Game:
 
     def show_player(self, i):
             print(self.players[i - 1])
-            for j in range(5):
+            for j in range(10):
                 print('\n')
 
     def show_players(self):
@@ -158,4 +162,7 @@ class Game:
 
 # когда меняются профессиями добавить рандом на стаж
 game = Game()
+
+
+
 game.start_game()
