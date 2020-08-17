@@ -110,6 +110,7 @@ class Game:
         # print(random.choice(DATA['Локация']))
         print(random.choice(DATA['Бункер']))
         print(random.choice(DATA['Бункер']))
+        print('\n\n\n')
         while True:
             print(f'[1 - {self.players_amount}] - показать игрока\ns - показать всех игроков\n\nУ всех:\n\tp - изменить профессии\n\th - изменить здоровье\n\tb - изменить биологические характеристики\n\tpar - изменить параметры\n\n')
             while True:
@@ -161,6 +162,9 @@ class Game:
 
 
 # когда меняются профессиями добавить рандом на стаж
+# добавить действия с игроком
+# добавить переролл карточки
+
 game = Game()
 
 
