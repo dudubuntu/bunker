@@ -1,0 +1,139 @@
+Главная
+    Начать игру         -->          Ждем остальных
+            пароль комнаты
+                * Включить баланс (?)
+            количество игроков
+                * Сколько останется в бункере?
+            локация
+            Использовать карточки (?)
+                * Ограничить время на каждого игрока
+                * Какое это время
+
+
+    Присоединиться      -->     Ждем остальных
+            id комнаты
+            пароль
+
+
+Room    Ждем остальных...
+    номер комнаты
+        * изменить пароль (для хоста)
+    вы присоединились как
+        никнейм      (возможность изменить (проверять, есть ли в комнате уже такой )) ((если авторизован и никнейма нет в базе, вставлять рандомный))
+        <готов>
+    подключившиеся игроки
+    кикнуть
+    <Поехали>   (возможность запустить не подождав всех, тогда отображать подтверждение)
+            
+
+Login
+    login
+    password
+    soc auth login
+
+logout
+    подтверждение выхода
+
+signup
+    login
+    password
+    password
+
+
+
+Профиль
+    логин
+    никнейм (возможность поменять)
+    всего игр
+    выигрыши/проигрыши
+
+    прошлые игры
+    активные
+    конфигурации
+
+
+Куки
+    ...
+
+
+О нас
+    инст
+    почта
+    разработчики
+
+
+Поддержка
+    отправить сообщение
+
+
+FAQ & Првила игры
+    Вопрос-ответ
+    правила
+
+
+
+
+---------Страницы---------
+Главная                     index_view
+Login                       login_view
+logout                      logout_view
+Signup                      signup_view
+Профиль                     profile_view
+Страница с комнатой         room_view
+Куки                        cookies_view
+О нас                       about_view
+Поддержка                   help_view
+FAQ & Првила игры           faq_and_rules_view
+
+
+
+-----------API------------
+
+change_nickname {"nickname": "", "new_nickname": ""}
+    * is_authorized
+
+Главная
+    connect_room {id, password}
+
+Комната
+    info    response {"state": "waiting", "connected": {"nickname": "", "is_ready": Boolean}}
+    kick_player {"initiator": "", "room_id": "", "nickname": ""}
+    player_ready {"nickname": "", "room_id": ""}
+    ***
+        game_apies
+    ***
+
+Login
+    check_login {"login": "", "password": ""}   response {"message": "You've successfuly logged in"}
+
+signup
+    check_login_exists {"login": ""}
+    sign_up {"login": "", "password1": "", "password2": ""}
+
+Профиль
+    get_user    response {"login": "", "nickname": "", "games_info": {"games_played_number": "", "win_quantity": "", "loss_quantity": "", "last_games": [{"room_id": "", "status": "win/loss"}, ], "active_games": ["room_id", ]}}
+    get_configurations      response {"name": "", data: ""}
+
+Поддержка
+    send_request {"name": "", "email": "", "text": ""}
+
+
+
+---------DB---------
+
+room
+    id              ManyToMany User
+    state
+    turn            # н игрока чей ход
+    lap             # круг, чтобы высчитать, сколько характеристик надо вскрывать
+    quantity_players
+    result
+
+room_user
+    room_id
+    login
+    username
+    player_number
+    info    {}      # все характеристики + карты (с номерами)
+    opened  []      # вскрытые характеристики ["bio", "profession", ...]
+    card_opened_numbers     []

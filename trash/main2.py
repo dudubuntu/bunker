@@ -131,6 +131,21 @@ class Game:
                             self.change_all_bio()
                     else:
                         self.show_player(command)
+                        print('Изменить профессию: 1\nВылечить: 2\nИзменить био: 3\nИзменить параметры: 4\nПоменяться здоровьем с другим игроком: 5\nПропустить: Enter')
+                        player_command = input('Введите команду: ')
+                        player = self.players[i - 1]
+                        if player_command == '1':
+                            player.change_profession()
+                        if player_command == '2':
+                            player.change_health('Идеально здоров')
+                        if player_command == '3':
+                            player.change_bio()
+                        if player_command == '4':
+                            player.change_parameters()
+                        if player_command == '5':
+                            change_player_health = input('Номер игрока: ')
+                            sec_player = self.players[int(change_player_health) - 1]
+                            player.health, sec_player.health = sec_player.health, player.health
 
                 input('\n\nНажмите Enter, чтобы продолжить: ')
                 break
