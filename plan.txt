@@ -89,18 +89,28 @@ FAQ & Првила игры           faq_and_rules_view
 
 -----------API------------
 
-change_nickname {"nickname": "", "new_nickname": ""}
     * is_authorized
 
 Главная
-    connect_room {id, password}
+    room_connect {"room_id": "", "password": ""}    200 или 403
 
 Комната
-    info    response {"state": "waiting", "connected": {"nickname": "", "is_ready": Boolean}}
-    kick_player {"initiator": "", "room_id": "", "nickname": ""}
-    player_ready {"nickname": "", "room_id": ""}
+    room_create {"nickname": "", "password": "", "players_quantity": "", "location": ""}
+    room_delete {"room_id": "", "nickname": ""}    200 или 400
+    room_info {"room_id": ""}      response {"room_id": "", "state": "waiting", "connected": [{"nickname": "", "is_ready": Boolean}, ]}
+    player_change_nickname {"room_id": "", "nickname": "", "new_nickname": ""}     400 если никнейм существует в комнате иначе 200
+    player_kick {"initiator": "", "room_id": "", "nickname": ""}
+    player_ready {"nickname": "", "room_id": ""}        200 или 400
     ***
-        game_apies
+        game_start {"room_id": "", "players": []}       200
+        player_get_current {"room_id": "", "username": ""}      response {"room_id": "", "usernmae": "", "info": {}, "opened": [], "card_opened_numbers": []}
+        game_info   response {"room_id": "", "state": "", "turn": "", "opening_quantity": "", "players": [{"player_number": "", "username": "", "info": {}, "status": ""}, ]}   # opening_quantity высчитывается на бэке (сколько вскрывать хартик)  |   в info приходят не все хар-ки, а только вскрытые
+        player_open_chars {"room_id": "", "nickname": "", open: []}     200 или 400
+        player_use_card {"room_id": "", "username": "", "card_number": ""}      200 или 400
+        player_make_vote {"room_id": "", "initiator": "", "votes": ["username_aim1", ...]}
+        game_votes_info {"room_id": "", "lap": ""}     response {"state": "", "extra": [{"initiator": "", "votes": ["username_aim1", ...]}, {}, ...]}       # если state waiting_first_time то extra пустое
+        game_results {"room_id": ""}        response {}
+
     ***
 
 Login
@@ -123,11 +133,15 @@ signup
 
 room
     id              ManyToMany User
-    state
+    initiator       # nickname
+    state           # [waiting, opening, voting, finished]
     turn            # н игрока чей ход
     lap             # круг, чтобы высчитать, сколько характеристик надо вскрывать
     quantity_players
     result
+    created
+    updated
+    closed
 
 room_user
     room_id
@@ -136,4 +150,11 @@ room_user
     player_number
     info    {}      # все характеристики + карты (с номерами)
     opened  []      # вскрытые характеристики ["bio", "profession", ...]
+    status          # [in_game, kicked]
     card_opened_numbers     []
+
+room_vote
+    room_id
+    lap
+    state       # [waiting_first_time, first_time_done, waiting_second_time, done]      # waiting second time - когда в первый раз голоса распределились поровну
+    extra   [{"initiator": "", "votes": ["username_aim1", ...]}]
