@@ -10,6 +10,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 
+import os
+
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -22,14 +24,12 @@ PROJECT_ROOT = BASE_DIR / 'bunker_proj'
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-*ivj*+ajmj!fkx^2bo9bz@h91)d%!#13(0je@158f6#=*9^s#j'
+SECRET_KEY = os.environ.get('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG')
 
-ALLOWED_HOSTS = [
-    "*"
-]
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS')
 
 
 # Application definition
@@ -91,8 +91,12 @@ WSGI_APPLICATION = 'bunker_proj.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('POSTGRES_DB'),
+        'USER': os.environ.get('POSTGRES_USER'),
+        'PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
+        'HOST': os.environ.get('POSTGRES_HOST'),
+        'PORT': os.environ.get('POSTGRES_PORT'),
     }
 }
 
@@ -134,10 +138,12 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.2/howto/static-files/
 
 STATIC_URL = '/static/'
-# STATICFILES_DIRS = [
-#     PROJECT_ROOT / 'static'
-# ]
-STATIC_ROOT = PROJECT_ROOT / 'static'
+if os.environ.get('COLLECT_STATIC', 0):
+    STATIC_ROOT = PROJECT_ROOT / 'static'
+else:
+    STATICFILES_DIRS = [
+        PROJECT_ROOT / 'static'
+    ]
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = PROJECT_ROOT / 'media'
