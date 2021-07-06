@@ -155,6 +155,6 @@ room_user
 
 room_vote
     room_id
-    lap
+    vote_lap
     state       # [waiting_first_time, first_time_done, waiting_second_time, done]      # waiting second time - когда в первый раз голоса распределились поровну
     extra   [{"initiator": "", "votes": ["username_aim1", ...]}]
