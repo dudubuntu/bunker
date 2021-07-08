@@ -1,6 +1,6 @@
 from aiohttp import web
 
-from .views import *
+from views import *
 
 
 def setup_routers(app: web.Application):

@@ -36,3 +36,18 @@ services:
         env_file: ./env.env
         volumes:
             - ./Docker/bunker_proj/:/usr/src/app/
+
+    game_ms:
+        build:
+            context: ./Docker/game_ms
+            dockerfile: Dockerfile
+        ports:
+            - 8001:8001
+        links:
+            - postgres
+        depends_on:
+            - postgres
+        restart: always
+        env_file: ./env.env
+        volumes:
+            - ./Docker/game_ms/:/usr/src/app/

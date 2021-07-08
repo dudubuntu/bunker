@@ -1,0 +1,6 @@
+aiohttp[speedups]
+aiopg
+celery
+psycopg2-binary
+gunicorn
+sqlalchemy
