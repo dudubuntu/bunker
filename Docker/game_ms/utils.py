@@ -17,8 +17,8 @@ def json_content_type_required(func):
     @wraps(func)
     def wrapper(request, *args, **kwargs):
         if not 'Content-Type' in request.headers:
-            return web.json_response(status=400, data={'error': 'Content-Type required'})
+            return web.json_response(status=400, data={'error': {'message': 'Content-Type required'}})
         if not request.headers['Content-Type'] == 'application/json':
-            return web.json_response(status=400, data={'error': 'Content-Type must be "application/json"'})
+            return web.json_response(status=400, data={'error': {'message': 'Content-Type must be "application/json"'}})
         return func(request, *args, **kwargs)
     return wrapper

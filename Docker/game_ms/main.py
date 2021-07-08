@@ -6,7 +6,7 @@ from config import APP_CONFIG
 from db_helpers import init_pg, close_pg
 
 
-async def my_web_app():
+async def init_app():
     app = web.Application()
 
     app['config'] = APP_CONFIG
