@@ -2,3 +2,5 @@
 *migrations*
 *.DS_Store*
 *db.sqlite3*
+Docker/bunker_proj/bunker_proj/static/admin/*
+Docker/bunker_proj/bunker_proj/static/rest_framework/*

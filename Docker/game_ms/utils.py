@@ -1,4 +1,5 @@
 from aiohttp import web
+from functools import wraps
 
 
 def contains_fields_or_return_error_responce(obj: dict, *fields: str):
@@ -9,4 +10,15 @@ def contains_fields_or_return_error_responce(obj: dict, *fields: str):
         
     errors = list(set(fields).difference(obj))
     if errors:
-        return web.json_response(status=400, data={'errors': [{'message': 'No required fields in request', 'extra': errors}]})
+        return web.json_response(status=400, data={'error': {'message': 'No required fields in request', 'extra': errors}})
+
+
+def json_content_type_required(func):
+    @wraps(func)
+    def wrapper(request, *args, **kwargs):
+        if not 'Content-Type' in request.headers:
+            return web.json_response(status=400, data={'error': 'Content-Type required'})
+        if not request.headers['Content-Type'] == 'application/json':
+            return web.json_response(status=400, data={'error': 'Content-Type must be "application/json"'})
+        return func(request, *args, **kwargs)
+    return wrapper
