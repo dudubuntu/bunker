@@ -34,6 +34,7 @@ class Room(models.Model):
         ('finished', 'finished'),
     )
     id = models.PositiveIntegerField(primary_key=True, default=autoincrement_id)
+    # password
     initiator = models.CharField(max_length=100)
     state = models.CharField(max_length=100, choices=STATES)
     turn = models.PositiveSmallIntegerField(default=1)
