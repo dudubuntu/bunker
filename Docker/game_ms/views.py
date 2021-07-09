@@ -58,8 +58,8 @@ async def room_info(request: web.Request, data: dict):
 async def room_create(request: web.Request, data:dict):
     async with request.app['db'].acquire() as conn:
         room = await conn.execute(insert(Room).values(id=1000, initiator='admin', password='', state=ROOM_STATES['waiting'], turn=1, lap=1, quantity_players=1, created=datetime.datetime.now(), updated=datetime.datetime.now()))
-        print(dir(room))
-        print(await room.scalar())
+        # print(dir(room))
+        # print(await room.scalar())
         # room_player = await conn.execute(insert(RoomUser).values(id=1, username=room.initiator, player_number=1, info={}, opened='', state=ROOMUSER_STATES['in_game'], card_opened_numbers='1', room_id=room.id, user_id=1))
         # print(room_player)
         

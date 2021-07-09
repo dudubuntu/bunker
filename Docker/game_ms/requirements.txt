@@ -5,3 +5,4 @@ psycopg2-binary
 gunicorn
 sqlalchemy
 pytest-aiohttp
+aiohttp_cors
