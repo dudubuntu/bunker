@@ -1,6 +1,6 @@
 from aiohttp import web
 import aiohttp_cors
-
+import aiohttp_session
 
 from routers import setup_routers
 from config import APP_CONFIG
@@ -28,6 +28,8 @@ async def init_app():
     setup_routers(app)
 
     cors_configurate(app)
+
+    aiohttp_session.setup(app, aiohttp_session.SimpleCookieStorage())
 
     app.on_startup.append(init_pg)
     app.on_shutdown.append(close_pg)

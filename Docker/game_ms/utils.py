@@ -1,6 +1,16 @@
 from aiohttp import web
 from functools import wraps
 import json
+import datetime
+import jwt
+
+
+class DateTimeJsonEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, datetime.datetime):
+            return o.__str__()
+        return super().default(o)
+
 
 
 def json_content_type_required(func):

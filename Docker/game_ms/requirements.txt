@@ -6,3 +6,6 @@ gunicorn
 sqlalchemy
 pytest-aiohttp
 aiohttp_cors
+cryptography
+aiohttp_session[secure]
+pyjwt
