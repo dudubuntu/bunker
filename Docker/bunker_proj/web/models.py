@@ -14,10 +14,10 @@ def autoincrement_id():
 
 class Player(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='player')
-    rooms = models.ManyToManyField('Room', related_name='players')
+    rooms = models.ManyToManyField('Room', related_name='players', blank=True)
     room_username = models.CharField(max_length=100)
     # configs = models.JSONField()
-    friends = models.ManyToManyField('self', symmetrical=True)
+    friends = models.ManyToManyField('self', symmetrical=True, blank=True)
 
     def __str__(self):
         return self.user.username
@@ -34,15 +34,16 @@ class Room(models.Model):
         ('finished', 'finished'),
     )
     id = models.PositiveIntegerField(primary_key=True, default=autoincrement_id)
-    # password
+    password = models.CharField(max_length=100)
     initiator = models.CharField(max_length=100)
     state = models.CharField(max_length=100, choices=STATES)
     turn = models.PositiveSmallIntegerField(default=1)
     lap = models.PositiveSmallIntegerField(default=1)
     quantity_players = models.PositiveSmallIntegerField(default=1)
+    # location = models.CharField(max_length=100)
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
-    closed = models.DateTimeField(null=True)
+    closed = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f'{self.id}'
@@ -59,11 +60,11 @@ class RoomUser(models.Model):
     room = models.ForeignKey('Room', on_delete=models.CASCADE, related_name='room_users')
     user = models.ForeignKey(User, on_delete=models.DO_NOTHING, related_name='room_user')
     username = models.CharField(max_length=100)
-    player_number = models.PositiveSmallIntegerField()
-    info = models.JSONField()
-    opened = models.CharField(max_length=1000)
+    player_number = models.PositiveSmallIntegerField(blank=True, null=True)
+    info = models.JSONField(blank=True, null=True)
+    opened = models.CharField(max_length=1000, blank=True, null=True)
     state = models.CharField(max_length=100, choices=STATES)
-    card_opened_numbers = models.CharField(max_length=100)
+    card_opened_numbers = models.CharField(max_length=100, blank=True, null=True)
 
     def __str__(self):
         return f'{self.username}-room{self.room_id}'

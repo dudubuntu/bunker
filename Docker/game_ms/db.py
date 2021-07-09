@@ -1,7 +1,7 @@
 from sqlalchemy.types import TypeDecorator
 from sqlalchemy import Table, MetaData, Column, Integer, String, Boolean, DateTime, ForeignKey, JSON
 from sqlalchemy.orm import relationship
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 
 ROOM_STATES = {
@@ -53,14 +53,19 @@ class User(Base):
     is_active = Column('is_active', Boolean())
     date_joined = Column('date_joined', DateTime(True))
 
+    room_users = relationship('RoomUser', back_populates='user')
+    # player = relationship('User', back_populates='user', primaryjoin='auth_user.id == web_player.user_id')
+
 
 class Player(Base):
     __tablename__ = 'web_player'
     
     id = Column('id', Integer(), primary_key=True)
     room_username = Column('room_username', String(100))
-    user_id = Column('user_id', ForeignKey('auth_user.id')),
-    # user_id = relationship('User', backref='player', lazy='dinamic', primaryjoin='User.id == Player.user_id')
+    user_id = Column('user_id', ForeignKey('auth_user.id'))
+    
+    # user = relationship('User', back_populates='player', primaryjoin='web_player.user_id == auth_user.id')
+    # user = relationship('auth_user', primaryjoin='web_player.user_id == auth_user.id')
 
 
 class Room(Base):
@@ -69,6 +74,7 @@ class Room(Base):
     id = Column('id', Integer(), primary_key=True)
     initiator = Column('initiator', String(100))
     # Column('state', Choices(ROOM_STATES))
+    password = Column('password', String(100))
     state = Column('state', String())
     turn = Column('turn', Integer())
     lap = Column('lap', Integer())
@@ -76,6 +82,9 @@ class Room(Base):
     created = Column('created', DateTime(True))
     updated = Column('updated', DateTime(True))
     closed = Column('closed', DateTime(True))
+
+    room_users = relationship('RoomUser', back_populates='room')
+    room_votes = relationship('RoomVote', back_populates='room')
 
 
 class RoomUser(Base):
@@ -91,6 +100,9 @@ class RoomUser(Base):
     room_id = Column('room_id', ForeignKey('web_room.id'))
     user_id = Column('user_id', ForeignKey('auth_user.id'))
 
+    room = relationship('Room', back_populates='room_users')
+    user = relationship('User', back_populates='room_users')
+
 
 class RoomVote(Base):
     __tablename__ = 'web_roomvote'
@@ -100,3 +112,5 @@ class RoomVote(Base):
     state = Column('state', String(100))
     extra = Column('extra', JSON())
     room_id = Column('room_id', ForeignKey('web_room.id'))
+
+    room = relationship('Room', back_populates='room_votes')
