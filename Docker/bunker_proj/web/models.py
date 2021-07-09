@@ -13,17 +13,24 @@ def autoincrement_id():
 
 
 class Player(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='player')
-    rooms = models.ManyToManyField('Room', related_name='players', blank=True)
+    # user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='player')
+    # rooms = models.ManyToManyField('Room', related_name='players', blank=True)
     room_username = models.CharField(max_length=100)
     # configs = models.JSONField()
-    friends = models.ManyToManyField('self', symmetrical=True, blank=True)
+    # friends = models.ManyToManyField('self', symmetrical=True, blank=True)
+    aiohttp_sess_id = models.CharField(max_length=44)
+
+    # def __str__(self):
+    #     return self.user.username
+
+    # def get_absolute_url(self):
+    #     return reverse('web:profile', kwargs={"slug": self.user.username})
 
     def __str__(self):
-        return self.user.username
+        return self.Room_username
 
     def get_absolute_url(self):
-        return reverse('web:profile', kwargs={"slug": self.user.username})
+        return reverse('web:profile', kwargs={"slug": self.room_username})
 
 
 class Room(models.Model):
@@ -58,13 +65,14 @@ class RoomUser(models.Model):
         ('kicked', 'kicked'),
     )
     room = models.ForeignKey('Room', on_delete=models.CASCADE, related_name='room_users')
-    user = models.ForeignKey(User, on_delete=models.DO_NOTHING, related_name='room_user')
+    # user = models.ForeignKey(User, on_delete=models.DO_NOTHING, related_name='room_user')
     username = models.CharField(max_length=100)
     player_number = models.PositiveSmallIntegerField(blank=True, null=True)
     info = models.JSONField(blank=True, null=True)
     opened = models.CharField(max_length=1000, blank=True, null=True)
     state = models.CharField(max_length=100, choices=STATES)
     card_opened_numbers = models.CharField(max_length=100, blank=True, null=True)
+    aiohttp_sess_id = models.CharField(max_length=105)
 
     def __str__(self):
         return f'{self.username}-room{self.room_id}'

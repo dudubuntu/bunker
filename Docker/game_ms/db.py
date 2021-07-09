@@ -1,5 +1,5 @@
 from sqlalchemy.types import TypeDecorator
-from sqlalchemy import Table, MetaData, Column, Integer, String, Boolean, DateTime, ForeignKey, JSON
+from sqlalchemy import Table, MetaData, Column, Integer, String, Boolean, DateTime, ForeignKey, JSON, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm import declarative_base
 
@@ -38,6 +38,14 @@ Base = declarative_base()
 meta = MetaData()
 
 
+# class Session(Base):
+#     __tablename__ = 'django_session'
+
+#     session_key = Column('session_key', String(40), primary_key=True)
+#     session_data = Column('session_data', Text())
+#     expire_date = Column('expire_date', DateTime(True))
+
+
 class User(Base):
     __tablename__ = 'auth_user'
 
@@ -53,7 +61,7 @@ class User(Base):
     is_active = Column('is_active', Boolean())
     date_joined = Column('date_joined', DateTime(True))
 
-    room_users = relationship('RoomUser', back_populates='user')
+    # room_users = relationship('RoomUser', back_populates='user')
     # player = relationship('User', back_populates='user', primaryjoin='auth_user.id == web_player.user_id')
 
 
@@ -79,6 +87,7 @@ class Room(Base):
     turn = Column('turn', Integer())
     lap = Column('lap', Integer())
     quantity_players = Column('quantity_players', Integer())
+    # location = Column()
     created = Column('created', DateTime(True))
     updated = Column('updated', DateTime(True))
     closed = Column('closed', DateTime(True))
@@ -93,15 +102,16 @@ class RoomUser(Base):
     id = Column('id', Integer(), primary_key=True)
     username = Column('username', String(100))
     player_number = Column('player_number', Integer())
-    info = Column('info', JSON())
-    opened = Column('opened', String(1000))
+    info = Column('info', JSON(), nullable=True)
+    opened = Column('opened', String(1000), nullable=True)
     state = Column('state', String(100))
-    card_opened_numbers = Column('card_opened_numbers', String(100))
+    card_opened_numbers = Column('card_opened_numbers', String(100), nullable=True)
     room_id = Column('room_id', ForeignKey('web_room.id'))
-    user_id = Column('user_id', ForeignKey('auth_user.id'))
+    aiohttp_sess_id = Column('aiohttp_sess_id', String(105))
+    # user_id = Column('user_id', ForeignKey('auth_user.id'))
 
     room = relationship('Room', back_populates='room_users')
-    user = relationship('User', back_populates='room_users')
+    # user = relationship('User', back_populates='room_users')
 
 
 class RoomVote(Base):
