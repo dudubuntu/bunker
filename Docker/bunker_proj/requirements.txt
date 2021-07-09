@@ -1,0 +1,11 @@
+celery
+Django
+django-celery
+django-celery-beat
+django-celery-results
+django-cors-headers
+django-rest-framework
+djangorestframework
+gunicorn
+psycopg2-binary
+redis

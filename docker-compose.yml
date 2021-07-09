@@ -1,0 +1,53 @@
+services:
+
+    postgres:
+        build:
+            context: ./Docker/postgres
+            dockerfile: Dockerfile
+        ports: 
+            - 5432:5432
+        env_file: ./env.env
+        restart: always
+
+
+    pgadmin:
+        image: fenglc/pgadmin4
+        ports:
+            - 5050:5050
+        restart: always
+        links: 
+            - postgres
+        env_file: ./env.env
+        depends_on:
+            - postgres
+
+    
+    web:
+        build:
+            context: ./Docker/bunker_proj
+            dockerfile: Dockerfile
+        ports: 
+            - 8000:8000
+        links:
+            - postgres
+        depends_on:
+            - postgres
+        restart: always
+        env_file: ./env.env
+        volumes:
+            - ./Docker/bunker_proj/:/usr/src/app/
+
+    game_ms:
+        build:
+            context: ./Docker/game_ms
+            dockerfile: Dockerfile
+        ports:
+            - 8001:8001
+        links:
+            - postgres
+        depends_on:
+            - postgres
+        restart: always
+        env_file: ./env.env
+        volumes:
+            - ./Docker/game_ms/:/usr/src/app/
