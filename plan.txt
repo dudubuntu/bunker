@@ -95,7 +95,7 @@ FAQ & Првила игры           faq_and_rules_view
     room_connect {"room_id": "", "password": ""}    200 или 403
 
 Комната
-    room_create {"nickname": "", "password": "", "players_quantity": "", "location": ""}
+    room_create {"nickname": "", "password": "", "quantity_players": "", "location": ""}
     room_delete {"room_id": "", "nickname": ""}    200 или 400
     room_info {"room_id": ""}      response {"room_id": "", "state": "waiting", "connected": [{"nickname": "", "is_ready": Boolean}, ]}
     player_change_nickname {"room_id": "", "nickname": "", "new_nickname": ""}     400 если никнейм существует в комнате иначе 200

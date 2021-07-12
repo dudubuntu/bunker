@@ -1,10 +1,11 @@
+from aiohttp.abc import AbstractAccessLogger
 from aiohttp import web
 from functools import wraps
 import json
 import datetime
 import jwt
-
-from aiohttp.abc import AbstractAccessLogger
+from sqlalchemy import select
+from sqlalchemy.sql.expression import func as sa_func
 
 
 class AccessLogger(AbstractAccessLogger):
@@ -67,9 +68,27 @@ def contains_fields_or_return_error_responce(*fields):
 def game_sess_id_cookie_required(func):
     """ """
     @wraps(func)
-    def wrapper(request, *args, **kwargs):
+    async def wrapper(request, *args, **kwargs):
         if not 'game_sess_id' in request.cookies:
             return web.json_response(status=403, data={'error': {'message': 'game_sess_id cookies is required.'}})
         
-        return func(request, *args, **kwargs)
+        return await func(request, *args, **kwargs)
     return wrapper
+
+
+async def db_max_id(conn, Table, default, max_plus_one):
+    """
+    if no rows use default
+    else max id of rows (max + 1 if max_plus_one)
+    """
+    id = (await (await conn.execute(select(sa_func.max(Table.id)))).fetchone())[0]
+    if id:
+        return id if not max_plus_one else id + 1
+    else:
+        return default
+
+
+async def db_max_column_value_in_room(conn, Table, room_id, column):
+    conn_res = await conn.execute(select(Table).where(Table.room_id == room_id).order_by(getattr(Table, column).desc()))
+    max = (await conn_res.first())[column]
+    return max
