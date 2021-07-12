@@ -1,4 +1,7 @@
 import os
+import pathlib
+
+APP_ROOT = pathlib.Path(__file__).parent
 
 APP_CONFIG = {
     'POSTGRES_DB': os.environ.get('POSTGRES_DB'),
@@ -8,4 +11,8 @@ APP_CONFIG = {
     'POSTGRES_PORT': os.environ.get('POSTGRES_PORT'),
     'TOKEN_EXPIRED_SECONDS': 172800,
     'TOKEN_APP_KEY': os.environ.get('TOKEN_APP_KEY'),
+    'APP_ROOT': APP_ROOT,
+    'LOG_LEVEL': os.environ.get('LOG_LEVEL'),
+    'LOG_FILENAME': os.environ.get('LOG_FILENAME'),
+    'LOG_FILEPATH': os.environ.get('LOG_FILEPATH'),
 }

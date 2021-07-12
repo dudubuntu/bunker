@@ -9,7 +9,7 @@ import jwt
 
 
 from db import Room, User, Player, RoomUser, RoomVote, ROOM_STATES, ROOMUSER_STATES
-from utils import contains_fields_or_return_error_responce, json_content_type_required, contains_fields_or_return_error_responce, DateTimeJsonEncoder
+from utils import contains_fields_or_return_error_responce, json_content_type_required, contains_fields_or_return_error_responce, DateTimeJsonEncoder, game_sess_id_cookie_required
 
 
 # def is_authenticated(func):
@@ -80,6 +80,18 @@ async def room_connect(request: web.Request, data: dict):
 
 
 @json_content_type_required
+@contains_fields_or_return_error_responce('initiator', 'password', 'state', 'turn', 'lap', 'players_quantity', 'location')
+async def room_create(request: web.Request, data:dict):
+    async with request.app['db'].acquire() as conn:
+        room = await conn.execute(insert(Room).values(id=1000, initiator='admin', password='', state=ROOM_STATES['waiting'], turn=1, lap=1, quantity_players=1, created=datetime.datetime.now(), updated=datetime.datetime.now()))
+        # room_player = await conn.execute(insert(RoomUser).values(id=1, username=room.initiator, player_number=1, info={}, opened='', state=ROOMUSER_STATES['in_game'], card_opened_numbers='1', room_id=room.id, user_id=1))
+        # print(room_player)
+        
+    return web.json_response(status=200, data={'message': 'Room was created'})
+
+
+@game_sess_id_cookie_required
+@json_content_type_required
 @contains_fields_or_return_error_responce('room_id')
 async def room_info(request: web.Request, data: dict):
     async with request.app['db'].acquire() as conn:
@@ -88,25 +100,13 @@ async def room_info(request: web.Request, data: dict):
         if not row:
             return web.json_response(status=400, data={'error': {'message': 'Room is not exist.'}})
         
-        print(row)
         data = {}
         data.update(zip(row, row.values()))
 
     return web.json_response(status=200, text=DateTimeJsonEncoder().encode(data))
 
 
-@json_content_type_required
-@contains_fields_or_return_error_responce('initiator', 'password', 'state', 'turn', 'lap', 'players_quantity', 'location')
-async def room_create(request: web.Request, data:dict):
-    async with request.app['db'].acquire() as conn:
-        room = await conn.execute(insert(Room).values(id=1000, initiator='admin', password='', state=ROOM_STATES['waiting'], turn=1, lap=1, quantity_players=1, created=datetime.datetime.now(), updated=datetime.datetime.now()))
-        # room_player = await conn.execute(insert(RoomUser).values(id=1, username=room.initiator, player_number=1, info={}, opened='', state=ROOMUSER_STATES['in_game'], card_opened_numbers='1', room_id=room.id, user_id=1))
-        # print(room_player)
-        
-
-    return web.json_response(status=200, data={'message': 'Room was created'})
-
-
+@game_sess_id_cookie_required
 @json_content_type_required
 @contains_fields_or_return_error_responce('room_id', 'nickname')
 async def room_delete(request: web.Request, data:dict):

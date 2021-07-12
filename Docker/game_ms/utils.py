@@ -4,6 +4,19 @@ import json
 import datetime
 import jwt
 
+from aiohttp.abc import AbstractAccessLogger
+
+
+class AccessLogger(AbstractAccessLogger):
+
+    def log(self, request, response, time):
+        self.logger.info(f'[%(asctime)s] [%(process)d] [%(levelname)s] '
+                         f'{request.remote} '
+                         f'"{request.method} {request.path} '
+                         f'done in {time}s: {response.status}')
+
+
+
 
 class DateTimeJsonEncoder(json.JSONEncoder):
     def default(self, o):
@@ -49,3 +62,14 @@ def contains_fields_or_return_error_responce(*fields):
             
         return wrapper2
     return wrapper1
+
+
+def game_sess_id_cookie_required(func):
+    """ """
+    @wraps(func)
+    def wrapper(request, *args, **kwargs):
+        if not 'game_sess_id' in request.cookies:
+            return web.json_response(status=403, data={'error': {'message': 'game_sess_id cookies is required.'}})
+        
+        return func(request, *args, **kwargs)
+    return wrapper
