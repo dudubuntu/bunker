@@ -2,6 +2,7 @@ from sqlalchemy.types import TypeDecorator
 from sqlalchemy import Table, MetaData, Column, Integer, String, Boolean, DateTime, ForeignKey, JSON, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm import declarative_base
+from sqlalchemy.sql import func as sa_func
 
 
 ROOM_STATES = {
@@ -76,6 +77,12 @@ class Player(Base):
     # user = relationship('auth_user', primaryjoin='web_player.user_id == auth_user.id')
 
 
+# def room_default_id(context):
+#     Room.id.
+#     return 
+
+
+
 class Room(Base):
     __tablename__ = 'web_room'
     
@@ -88,9 +95,9 @@ class Room(Base):
     lap = Column('lap', Integer())
     quantity_players = Column('quantity_players', Integer())
     # location = Column()
-    created = Column('created', DateTime(True))
-    updated = Column('updated', DateTime(True))
-    closed = Column('closed', DateTime(True))
+    created = Column('created', DateTime(True), default=sa_func.now())
+    updated = Column('updated', DateTime(True), default=sa_func.now())
+    closed = Column('closed', DateTime(True), nullable=True)
 
     room_users = relationship('RoomUser', back_populates='room')
     room_votes = relationship('RoomVote', back_populates='room')
