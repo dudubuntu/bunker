@@ -1,9 +1,7 @@
 import random
 import os, sys
 
-sys.path.append(os.getcwd())
-
-from bunker.help import DATA
+from help import DATA
 
 
 class Player:

@@ -1,10 +1,12 @@
-import os, sys
+import os, sys, pathlib
 import unittest
 import pytest
 
-sys.path.append(os.getcwd())
-# print(os.getcwd())
-from bunker.main import *
+# sys.path.append(pathlib.Path(__file__).parent.parent)
+print(str(pathlib.Path(__file__).parent.parent))
+print(os.getcwd())
+sys.path.append(pathlib.Path(__file__).parent.parent)
+from main import *
 
 
 

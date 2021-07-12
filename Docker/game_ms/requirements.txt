@@ -9,3 +9,5 @@ aiohttp_cors
 cryptography
 aiohttp_session[secure]
 pyjwt
+pytest
+pytest-aiohttp
