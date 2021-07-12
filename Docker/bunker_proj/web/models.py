@@ -68,11 +68,11 @@ class RoomUser(models.Model):
     # user = models.ForeignKey(User, on_delete=models.DO_NOTHING, related_name='room_user')
     username = models.CharField(max_length=100)
     player_number = models.PositiveSmallIntegerField(blank=True, null=True)
-    info = models.JSONField(blank=True, null=True)
+    info = models.JSONField()
     opened = models.CharField(max_length=1000, blank=True, null=True)
     state = models.CharField(max_length=100, choices=STATES)
     card_opened_numbers = models.CharField(max_length=100, blank=True, null=True)
-    aiohttp_sess_id = models.CharField(max_length=105)
+    game_sess_id = models.CharField(max_length=105)
 
     def __str__(self):
         return f'{self.username}-room{self.room_id}'
