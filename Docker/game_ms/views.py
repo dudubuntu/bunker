@@ -84,13 +84,13 @@ async def room_connect(request: web.Request, data: dict):
 
 
 @json_content_type_required
-@contains_fields_or_return_error_responce('initiator', 'password', 'state', 'turn', 'lap', 'quantity_players', 'location')
+@contains_fields_or_return_error_responce('initiator', 'password', 'quantity_players', 'location')
 async def room_create(request: web.Request, data:dict):
     async with request.app['db'].acquire() as conn:
         async with conn.begin() as tr:
             logging.debug(data)
             room_id = await db_max_id(conn, Room, 1000, True)
-            row = await conn.execute(insert(Room).values(id=room_id, initiator=data['initiator'], password=data['password'], state=data['state'], turn=data['turn'], lap=data['lap'], quantity_players=data['quantity_players']))
+            row = await conn.execute(insert(Room).values(id=room_id, initiator=data['initiator'], password=data['password'], state=ROOM_STATES['waiting'], turn=1, lap=1, quantity_players=data['quantity_players']))
 
             response = web.json_response()
             game_sess_id = request.cookies.get('game_sess_id', 0)
