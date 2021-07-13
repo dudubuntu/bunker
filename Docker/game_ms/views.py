@@ -70,11 +70,10 @@ async def room_connect(request: web.Request, data: dict):
             response.text = json.dumps({'error': {'message': 'The room is full'}})
             return response
 
-
         room_user_id = await db_max_id(conn, RoomUser, 1, True)
         player_number = await db_max_column_value_in_room(conn, RoomUser, room_id, 'player_number') + 1
         await conn.execute(insert(RoomUser, [
-            {'id': room_user_id, 'username': f'user-{player_number}', 'player_number': player_number, 'state': 'in_game', 'room_id': room_id, 'game_sess_id': game_sess_id, 'info': {}}
+            {'id': room_user_id, 'username': f'user-{player_number}', 'player_number': player_number, 'state': 'not_ready', 'room_id': room_id, 'game_sess_id': game_sess_id, 'info': {}}
         ]))
 
         #TODO добавлять ли редирект?
@@ -102,7 +101,7 @@ async def room_create(request: web.Request, data:dict):
                 response.set_cookie('game_sess_id', game_sess_id)
 
             room_user_id = await db_max_id(conn, RoomUser, 1, True)
-            row = await conn.execute(insert(RoomUser).values(id=room_user_id, username=data['initiator'], player_number=1, info={}, opened='', state=ROOMUSER_STATES['in_game'], card_opened_numbers='', room_id=room_id, game_sess_id=game_sess_id))
+            row = await conn.execute(insert(RoomUser).values(id=room_user_id, username=data['initiator'], player_number=1, info={}, opened='', state=ROOMUSER_STATES['ready'], card_opened_numbers='', room_id=room_id, game_sess_id=game_sess_id))
             
             response.text = json.dumps({'message': 'Successfully created', 'room_id': room_id})
             return response  
@@ -147,3 +146,5 @@ async def room_delete(request: web.Request, data:dict):
             await conn.execute(delete(RoomUser).where(RoomUser.room_id == data['room_id']))
 
     return web.json_response(status=200, data={'message': 'Room was deleted'})
+
+

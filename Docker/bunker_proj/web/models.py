@@ -61,6 +61,8 @@ class Room(models.Model):
 
 class RoomUser(models.Model):
     STATES = (
+        ('ready', 'ready'),
+        ('not_ready', 'not_ready'),
         ('in_game', 'in_game'),
         ('kicked', 'kicked'),
     )
@@ -70,7 +72,7 @@ class RoomUser(models.Model):
     player_number = models.PositiveSmallIntegerField(blank=True, null=True)
     info = models.JSONField()
     opened = models.CharField(max_length=1000, blank=True, null=True)
-    state = models.CharField(max_length=100, choices=STATES)
+    state = models.CharField(max_length=100, choices=STATES, default='not_ready')
     card_opened_numbers = models.CharField(max_length=100, blank=True, null=True)
     game_sess_id = models.CharField(max_length=105)
 

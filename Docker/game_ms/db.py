@@ -13,6 +13,8 @@ ROOM_STATES = {
 }
 
 ROOMUSER_STATES = {
+    'ready': 'ready',
+    'not_ready': 'not_ready',
     'in_game': 'in_game',
     'kicked': 'kicked',
 }
