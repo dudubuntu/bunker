@@ -9,4 +9,4 @@ def setup_routers(app: web.Application):
     app.router.add_route('GET', '/api/v1/room_create', room_create)
     app.router.add_route('GET', '/api/v1/room_delete', room_delete)
     
-    app.router.add_route('GET', '/api/v1/player_change_nickname', player_change_nickname)
+    app.router.add_route('GET', '/api/v1/player_change_nickname', player_change_username)

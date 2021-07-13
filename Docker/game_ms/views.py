@@ -117,11 +117,17 @@ async def room_info(request: web.Request, data: dict):
         if not row:
             return web.json_response(status=400, data={'error': {'message': 'Room is not exist.'}})
         
-        data = {}
-        data.update(zip(row, row.values()))
 
         #TODO добавить в ответ поле connected
+        room_users = await (await conn.execute(select(RoomUser.username, RoomUser.state).where(RoomUser.room_id == data['room_id']))).fetchall()
+        logging.debug(room_users)
+        connected = []
+        for user_row in room_users:
+            user = dict(zip(user_row, user_row.values()))
+            connected.append(user)
 
+        data = dict(zip(row, row.values()))
+        data.update({'connected': connected})
     return web.json_response(status=200, text=DateTimeJsonEncoder().encode(data))
 
 
@@ -150,14 +156,14 @@ async def room_delete(request: web.Request, data:dict):
 @game_sess_id_cookie_required
 @json_content_type_required
 @contains_fields_or_return_error_responce('room_id', 'new_username')
-async def player_change_nickname(request: web.Request, data:dict):
+async def player_change_username(request: web.Request, data:dict):
     async with request.app['db'].acquire() as conn:
         user_row = await get_user_row_in_room_or_error_response(conn, data['room_id'], request.cookies['game_sess_id'])
         if isinstance(user_row, web.Response):
             return user_row
 
         if data['new_username'] == user_row['username']:
-            return web.json_response(status=400, data={'error': {'message': 'New nickname is the same with the old one.'}})
+            return web.json_response(status=400, data={'error': {'message': 'New username is the same with the old one.'}})
 
         is_owner = False
         room = await (await conn.execute(select(Room).where(Room.id == data['room_id']))).fetchone()
@@ -166,7 +172,7 @@ async def player_change_nickname(request: web.Request, data:dict):
 
         result = await (await conn.execute(select(RoomUser.username).where(RoomUser.room_id == data['room_id']).where(RoomUser.username == data['new_username']))).fetchall()
         if result:
-            return web.json_response(status=400, data={'error': {'message': 'This nickname is already in room.'}})
+            return web.json_response(status=400, data={'error': {'message': 'This username is already in room.'}})
 
         async with conn.begin() as tr:
             result = await conn.execute(update(RoomUser).values(username=data['new_username']).where(RoomUser.id == user_row['id']))
@@ -178,4 +184,4 @@ async def player_change_nickname(request: web.Request, data:dict):
                 if result.rowcount == 0:
                     return web.json_response(status=500, data={'error': {'message': 'Error oquired'}})
         
-        return web.json_response(status=200, data={'error': {'message': 'Nickname was changed'}})
+        return web.json_response(status=200, data={'error': {'message': 'Username was changed'}})

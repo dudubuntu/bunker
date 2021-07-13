@@ -98,7 +98,7 @@ FAQ & Првила игры           faq_and_rules_view
     room_create {"nickname": "", "password": "", "quantity_players": "", "location": ""}
     room_delete {"room_id": "", "nickname": ""}    200 или 400
     room_info {"room_id": ""}      response {"room_id": "", "state": "waiting", "connected": [{"nickname": "", "is_ready": Boolean}, ]}
-    player_change_nickname {"room_id": "", "nickname": "", "new_nickname": ""}     400 если никнейм существует в комнате иначе 200
+    player_change_username {"room_id": "", "username": "", "new_nickname": ""}     400 если никнейм существует в комнате иначе 200
     player_kick {"initiator": "", "room_id": "", "nickname": ""}
     player_ready {"nickname": "", "room_id": ""}        200 или 400
     ***
