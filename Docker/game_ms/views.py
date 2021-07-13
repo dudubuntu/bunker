@@ -85,7 +85,7 @@ async def room_connect(request: web.Request, data: dict):
             room_user_id = await db_max_id(conn, RoomUser, 1, True)
             player_number = await db_max_column_value_in_room(conn, RoomUser, room_id, 'player_number') + 1
             await conn.execute(insert(RoomUser, [
-                {'id': room_user_id, 'username': f'user-{player_number}', 'player_number': player_number, 'state': 'not_ready', 'room_id': room_id, 'game_sess_id': game_sess_id, 'info': {}}
+                {'id': room_user_id, 'username': f'user-{player_number}', 'player_number': player_number, 'state': 'not_ready', 'room_id': room_id, 'game_sess_id': game_sess_id, 'info': {}, 'opened': '', 'card_opened_numbers': ''}
             ]))
 
         #TODO добавлять ли редирект?
