@@ -10,7 +10,7 @@ import jwt
 import logging
 
 from db import Room, User, Player, RoomUser, RoomVote, ROOM_STATES, ROOMUSER_STATES
-from utils import contains_fields_or_return_error_responce, json_content_type_required, contains_fields_or_return_error_responce, DateTimeJsonEncoder, game_sess_id_cookie_required, db_max_id, db_max_column_value_in_room
+from utils import contains_fields_or_return_error_responce, json_content_type_required, contains_fields_or_return_error_responce, DateTimeJsonEncoder, game_sess_id_cookie_required, db_max_id, db_max_column_value_in_room, get_user_row_in_room_or_error_response
 
 
 @json_content_type_required
@@ -131,10 +131,9 @@ async def room_info(request: web.Request, data: dict):
 async def room_delete(request: web.Request, data:dict):
     room_id = data['room_id']
     async with request.app['db'].acquire() as conn:
-        row = await (await conn.execute(select(RoomUser).where(RoomUser.room_id == room_id).where(RoomUser.game_sess_id == request.cookies['game_sess_id']))).fetchone()
-
-        if row is None:
-            return web.json_response(status=403, data={'error': {'message': 'Invalid session or room doesn`t exist'}})
+        row = await get_user_row_in_room_or_error_response(conn, data['room_id'], request.cookies['game_sess_id'])
+        if isinstance(row, web.Response):
+            return row
 
         username = row.get('username')
         logging.debug(username)
@@ -148,3 +147,35 @@ async def room_delete(request: web.Request, data:dict):
     return web.json_response(status=200, data={'message': 'Room was deleted'})
 
 
+@game_sess_id_cookie_required
+@json_content_type_required
+@contains_fields_or_return_error_responce('room_id', 'new_username')
+async def player_change_nickname(request: web.Request, data:dict):
+    async with request.app['db'].acquire() as conn:
+        user_row = await get_user_row_in_room_or_error_response(conn, data['room_id'], request.cookies['game_sess_id'])
+        if isinstance(user_row, web.Response):
+            return user_row
+
+        if data['new_username'] == user_row['username']:
+            return web.json_response(status=400, data={'error': {'message': 'New nickname is the same with the old one.'}})
+
+        is_owner = False
+        room = await (await conn.execute(select(Room).where(Room.id == data['room_id']))).fetchone()
+        if room['initiator'] == user_row['username']:
+            is_owner = True
+
+        result = await (await conn.execute(select(RoomUser.username).where(RoomUser.room_id == data['room_id']).where(RoomUser.username == data['new_username']))).fetchall()
+        if result:
+            return web.json_response(status=400, data={'error': {'message': 'This nickname is already in room.'}})
+
+        async with conn.begin() as tr:
+            result = await conn.execute(update(RoomUser).values(username=data['new_username']).where(RoomUser.id == user_row['id']))
+            if result.rowcount == 0:
+                return web.json_response(status=500, data={'error': {'message': 'Error oquired'}})
+            
+            if is_owner:
+                result = await conn.execute(update(Room).values(initiator=data['new_username']).where(Room.id == data['room_id']))
+                if result.rowcount == 0:
+                    return web.json_response(status=500, data={'error': {'message': 'Error oquired'}})
+        
+        return web.json_response(status=200, data={'error': {'message': 'Nickname was changed'}})

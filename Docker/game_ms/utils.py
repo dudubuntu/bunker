@@ -7,6 +7,8 @@ import jwt
 from sqlalchemy import select
 from sqlalchemy.sql.expression import func as sa_func
 
+from db import RoomUser
+
 
 class AccessLogger(AbstractAccessLogger):
 
@@ -74,6 +76,13 @@ def game_sess_id_cookie_required(func):
         
         return await func(request, *args, **kwargs)
     return wrapper
+
+
+async def get_user_row_in_room_or_error_response(conn, room_id, game_sess_id):
+    row = await (await conn.execute(select(RoomUser).where(RoomUser.room_id == room_id).where(RoomUser.game_sess_id == game_sess_id))).fetchone()
+    if row is None:
+        return web.json_response(status=400, data={'error': {'message': 'User not in room or room with such room_id doesn`t exist or game_sess_id is invalid.'}})
+    return row
 
 
 async def db_max_id(conn, Table, default, max_plus_one):
