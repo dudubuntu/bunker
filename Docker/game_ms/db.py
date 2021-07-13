@@ -17,6 +17,7 @@ ROOMUSER_STATES = {
     'not_ready': 'not_ready',
     'in_game': 'in_game',
     'kicked': 'kicked',
+    'left': 'left',
 }
 
 ROOMVOTE_STATES = {

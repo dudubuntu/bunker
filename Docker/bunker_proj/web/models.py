@@ -65,6 +65,7 @@ class RoomUser(models.Model):
         ('not_ready', 'not_ready'),
         ('in_game', 'in_game'),
         ('kicked', 'kicked'),
+        ('left', 'left'),
     )
     room = models.ForeignKey('Room', on_delete=models.CASCADE, related_name='room_users')
     # user = models.ForeignKey(User, on_delete=models.DO_NOTHING, related_name='room_user')

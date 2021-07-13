@@ -24,38 +24,34 @@ async def room_connect(request: web.Request, data: dict):
     {"error": {"message": "", extra: ["", ""]}} status=400
     """
 
+    #TODO добавить проверку на статус комнаты - впускать только в статусе waiting
+
     room_id = None
     async with request.app['db'].acquire() as conn:
-        conn_result = await conn.execute(select(Room).where(Room.id == data['room_id']).where(Room.password == data['password']))    #, Room.password == data['password']))
-        row = await conn_result.fetchone()
-        if not row:
+        room_row = await (await conn.execute(select(Room).where(Room.id == data['room_id']).where(Room.password == data['password']))).fetchone()
+        if not room_row:
             return web.json_response(status=400, data={'error': {'message': 'No such room with the provided room_id and password.'}})
         
-        room_id = row['id']
+        room_id = room_row['id']
 
         response = web.json_response()
         sess_is_invalid = False
+        user_already_in_room = False
 
         if 'game_sess_id' in request.cookies:
-            conn_result = await conn.execute(
-                select(RoomUser)\
-                .where(RoomUser.game_sess_id == request.cookies['game_sess_id'])\
-                .where(RoomUser.room_id == room_id)
-            )
-            row = await conn_result.fetchone()
+            user_row = await (await conn.execute(select(RoomUser).where(RoomUser.game_sess_id == request.cookies['game_sess_id']).where(RoomUser.room_id == room_id))).fetchone()
 
-            if not row:
+            if not user_row:
                 response.del_cookie('game_sess_id')
                 sess_is_invalid = True
             else:
-                if row['state'] == 'kicked':
+                if user_row['state'] == 'kicked':
                     response.text = json.dumps({'error': {'message': 'User have been kicked'}})
                     # response.status = 403         изменить логику смены статуса
                     return response
                 else:
                     game_sess_id = request.cookies['game_sess_id']
-                    response.text = json.dumps({'message': 'Successfuly connected'})
-                    return response
+                    user_already_in_room = True
 
         if not 'game_sess_id' in request.cookies or sess_is_invalid:
             game_sess_id = jwt.encode(
@@ -63,18 +59,33 @@ async def room_connect(request: web.Request, data: dict):
                 key = request.app['config']['TOKEN_APP_KEY'])
             response.set_cookie('game_sess_id', game_sess_id)
 
+        user_left = False
+        if user_already_in_room:
+            user_row = await (await conn.execute(select(RoomUser).where(RoomUser.room_id == room_id).where(RoomUser.game_sess_id == request.cookies['game_sess_id']))).fetchone()
+            if user_row['state'] in ('ready', 'not_ready'):
+                response.text = json.dumps({'message': 'Successfuly connected'})
+                return response
+            elif user_row['state'] in ('left'):
+                user_left = True
+
         quantity_players = (await (await conn.execute(select(Room).where(Room.id == room_id))).first())['quantity_players']
-        current_quantity = (await (await conn.execute(select(sa_func.count(RoomUser.id)).where(RoomUser.room_id == room_id))).first())[0]
+        current_quantity = (await (await conn.execute(select(sa_func.count(RoomUser.id)).where(RoomUser.room_id == room_id).where(RoomUser.state != ROOMUSER_STATES['left']))).first())[0]
         if not current_quantity < quantity_players:
             #TODO изменить статус
             response.text = json.dumps({'error': {'message': 'The room is full'}})
             return response
 
-        room_user_id = await db_max_id(conn, RoomUser, 1, True)
-        player_number = await db_max_column_value_in_room(conn, RoomUser, room_id, 'player_number') + 1
-        await conn.execute(insert(RoomUser, [
-            {'id': room_user_id, 'username': f'user-{player_number}', 'player_number': player_number, 'state': 'not_ready', 'room_id': room_id, 'game_sess_id': game_sess_id, 'info': {}}
-        ]))
+        if user_left:
+            state = ROOMUSER_STATES['ready'] if room_row['initiator'] == user_row['username'] else ROOMUSER_STATES['not_ready']
+            result = await conn.execute(update(RoomUser).values(state=state).where(RoomUser.room_id == data['room_id']).where(RoomUser.game_sess_id == request.cookies['game_sess_id']))
+            if result.rowcount == 0:
+                return web.json_response(status=500, data={'error': {'message': 'Something went wrong.'}})
+        else:
+            room_user_id = await db_max_id(conn, RoomUser, 1, True)
+            player_number = await db_max_column_value_in_room(conn, RoomUser, room_id, 'player_number') + 1
+            await conn.execute(insert(RoomUser, [
+                {'id': room_user_id, 'username': f'user-{player_number}', 'player_number': player_number, 'state': 'not_ready', 'room_id': room_id, 'game_sess_id': game_sess_id, 'info': {}}
+            ]))
 
         #TODO добавлять ли редирект?
         # location = ''
@@ -177,11 +188,39 @@ async def player_change_username(request: web.Request, data:dict):
         async with conn.begin() as tr:
             result = await conn.execute(update(RoomUser).values(username=data['new_username']).where(RoomUser.id == user_row['id']))
             if result.rowcount == 0:
-                return web.json_response(status=500, data={'error': {'message': 'Error oquired'}})
+                return web.json_response(status=500, data={'error': {'message': 'Something went wrong.'}})
             
             if is_owner:
                 result = await conn.execute(update(Room).values(initiator=data['new_username']).where(Room.id == data['room_id']))
                 if result.rowcount == 0:
-                    return web.json_response(status=500, data={'error': {'message': 'Error oquired'}})
+                    return web.json_response(status=500, data={'error': {'message': 'Something went wrong.'}})
         
         return web.json_response(status=200, data={'error': {'message': 'Username was changed'}})
+
+
+@game_sess_id_cookie_required
+@json_content_type_required
+@contains_fields_or_return_error_responce('room_id', 'aim_username')
+async def player_kick(request: web.Request, data: dict):
+    async with request.app['db'].acquire() as conn:
+        user_row = await get_user_row_in_room_or_error_response(conn, data['room_id'], request.cookies['game_sess_id'])
+        if isinstance(user_row, web.Response):
+            return user_row
+
+        if data['aim_username'] == user_row['username']:
+            result = await conn.execute(update(RoomUser).values(state=ROOMUSER_STATES['left']).where(RoomUser.id == user_row['id']))
+            if result.rowcount == 0:
+                return web.json_response(status=500, data={'error': {'message': 'Something went wrong.'}})
+            return web.json_response(status=200, data={'error': {'message': 'You were successfuly left.'}})
+
+        room_row = await (await conn.execute(select(Room).where(Room.id == data['room_id']))).fetchone()
+        if user_row['username'] != room_row['initiator']:
+            return web.json_response(status=403, data={'error': {'message': 'You have no priveleges to do this.'}})
+
+        result = await conn.execute(update(RoomUser).values(state=ROOMUSER_STATES['kicked']).where(RoomUser.room_id == data['room_id']).where(RoomUser.username == data['aim_username']))
+        if result.rowcount == 0:
+            return web.json_response(status=500, data={'error': {'message': 'There is no user with the provider username.'}})
+
+        #TODO Добавить транзакцию на проверку: если в комнате нет хотя бы одного пользователя в статусе не kicked, left то удалить комнату
+
+        return web.json_response(status=200, data={'error': {'message': f'User {data["aim_username"]} was successfully kicked.'}})
