@@ -6,8 +6,10 @@ import datetime
 import jwt
 from sqlalchemy import select
 from sqlalchemy.sql.expression import func as sa_func
+import random
 
 from db import RoomUser
+from game_help import Player
 
 
 class AccessLogger(AbstractAccessLogger):
@@ -101,3 +103,15 @@ async def db_max_column_value_in_room(conn, Table, room_id, column):
     conn_res = await conn.execute(select(Table).where(Table.room_id == room_id).order_by(getattr(Table, column).desc()))
     max = (await conn_res.first())[column]
     return max
+
+
+def init_game(quantity_players):
+    """Return list of lists: order and chars"""
+    players_list = [[], []]
+
+    seq = [x for x in range(1, quantity_players + 1)]
+    while seq:
+        players_list[0].append(seq.pop(random.randint(0, len(seq) - 1)))
+        players_list[1].append(Player().get_json())
+    
+    return players_list

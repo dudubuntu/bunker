@@ -11,7 +11,7 @@ import logging
 import random
 
 from db import Room, User, Player, RoomUser, RoomVote, ROOM_STATES, ROOMUSER_STATES
-from utils import contains_fields_or_return_error_responce, json_content_type_required, contains_fields_or_return_error_responce, DateTimeJsonEncoder, game_sess_id_cookie_required, db_max_id, db_max_column_value_in_room, get_user_row_in_room_or_error_response
+from utils import contains_fields_or_return_error_responce, json_content_type_required, contains_fields_or_return_error_responce, DateTimeJsonEncoder, game_sess_id_cookie_required, db_max_id, db_max_column_value_in_room, get_user_row_in_room_or_error_response, init_game
 
 
 @json_content_type_required
@@ -241,3 +241,31 @@ async def player_ready(request: web.Request, data: dict):
             return web.json_response(status=500, data={'error': {'message': 'Something went wrong.'}})
 
         return web.json_response(status=200, data={'message': 'You`re ready!'})
+
+
+@game_sess_id_cookie_required
+@json_content_type_required
+@contains_fields_or_return_error_responce('room_id')
+async def game_start(request: web.Request, data:dict):
+    async with request.app['db'].acquire() as conn:
+        user_row = await get_user_row_in_room_or_error_response(conn, data['room_id'], request.cookies['game_sess_id'])
+        if isinstance(user_row, web.Response):
+            return user_row
+
+        room_row = await (await conn.execute(select(Room).where(Room.id == data['room_id']))).fetchone()
+        if user_row['username'] != room_row['initiator']:
+            return web.json_response(status=403, data={'error': {'message': 'You have no priveleges to do this.'}})
+        if room_row['state'] != 'waiting':
+            return web.json_response(status=400, data={'error': {'message': 'The game is already started'}})
+
+        roomuser_list = await (await conn.execute(select(RoomUser).where(RoomUser.room_id == room_row['id']).where(RoomUser.state == ROOMUSER_STATES['ready']))).fetchall()
+        order_chars_list = [*init_game(room_row['quantity_players'])]
+
+        async with conn.begin():
+            for roomuser, order_number, char in zip(roomuser_list, *order_chars_list):
+                logging.debug(roomuser, order_number, char)
+                result = await conn.execute(update(RoomUser).values(state=ROOMUSER_STATES['in_game'], player_number=order_number, info=char).where(RoomUser.room_id == room_row['id']).where(RoomUser.game_sess_id == roomuser['game_sess_id']))
+
+            await conn.execute(update(Room).values(state=ROOM_STATES['opening']).where(Room.id == room_row['id']))
+
+        return web.json_response(status=200, data={'message': 'The game is started'})
