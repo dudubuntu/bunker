@@ -13,15 +13,6 @@ from db import Room, User, Player, RoomUser, RoomVote, ROOM_STATES, ROOMUSER_STA
 from utils import contains_fields_or_return_error_responce, json_content_type_required, contains_fields_or_return_error_responce, DateTimeJsonEncoder, game_sess_id_cookie_required, db_max_id, db_max_column_value_in_room
 
 
-# def is_authenticated(func):
-#     def wrapper(request: web.Request, *args, **kwargs):
-#         sess_id = request.cookies['sessionid']
-#         res = func(request, *args, **kwargs)
-#         return res
-#     return wrapper
-# def is_authenticated(request: web.Request):
-
-
 @json_content_type_required
 @contains_fields_or_return_error_responce('room_id', 'password')
 async def room_connect(request: web.Request, data: dict):
@@ -48,7 +39,7 @@ async def room_connect(request: web.Request, data: dict):
         if 'game_sess_id' in request.cookies:
             conn_result = await conn.execute(
                 select(RoomUser)\
-                .where(RoomUser.aiohttp_sess_id == request.cookies['game_sess_id'])\
+                .where(RoomUser.game_sess_id == request.cookies['game_sess_id'])\
                 .where(RoomUser.room_id == room_id)
             )
             row = await conn_result.fetchone()
@@ -83,9 +74,10 @@ async def room_connect(request: web.Request, data: dict):
         room_user_id = await db_max_id(conn, RoomUser, 1, True)
         player_number = await db_max_column_value_in_room(conn, RoomUser, room_id, 'player_number') + 1
         await conn.execute(insert(RoomUser, [
-            {'id': room_user_id, 'username': f'user-{player_number}', 'player_number': player_number, 'state': 'in_game', 'room_id': room_id, 'aiohttp_sess_id': game_sess_id, 'info': {}}
+            {'id': room_user_id, 'username': f'user-{player_number}', 'player_number': player_number, 'state': 'in_game', 'room_id': room_id, 'game_sess_id': game_sess_id, 'info': {}}
         ]))
 
+        #TODO добавлять ли редирект?
         # location = ''
         # raise web.HTTPFound()
         response.text = json.dumps({'message': 'Successfuly connected'})
@@ -110,11 +102,10 @@ async def room_create(request: web.Request, data:dict):
                 response.set_cookie('game_sess_id', game_sess_id)
 
             room_user_id = await db_max_id(conn, RoomUser, 1, True)
-            row = await conn.execute(insert(RoomUser).values(id=room_user_id, username=data['initiator'], player_number=1, info={}, opened='', state=ROOMUSER_STATES['in_game'], card_opened_numbers='', room_id=room_id, aiohttp_sess_id=game_sess_id))
+            row = await conn.execute(insert(RoomUser).values(id=room_user_id, username=data['initiator'], player_number=1, info={}, opened='', state=ROOMUSER_STATES['in_game'], card_opened_numbers='', room_id=room_id, game_sess_id=game_sess_id))
             
             response.text = json.dumps({'message': 'Successfully created', 'room_id': room_id})
-            return response
-        
+            return response  
 
 
 @game_sess_id_cookie_required
@@ -130,14 +121,29 @@ async def room_info(request: web.Request, data: dict):
         data = {}
         data.update(zip(row, row.values()))
 
+        #TODO добавить в ответ поле connected
+
     return web.json_response(status=200, text=DateTimeJsonEncoder().encode(data))
 
 
 @game_sess_id_cookie_required
 @json_content_type_required
-@contains_fields_or_return_error_responce('room_id', 'nickname')
+@contains_fields_or_return_error_responce('room_id')
 async def room_delete(request: web.Request, data:dict):
+    room_id = data['room_id']
     async with request.app['db'].acquire() as conn:
-        await conn.execute(delete(Room).where(Room.id == data['room_id']).where(Room.initiator == data['nickname']))
+        row = await (await conn.execute(select(RoomUser).where(RoomUser.room_id == room_id).where(RoomUser.game_sess_id == request.cookies['game_sess_id']))).fetchone()
+
+        if row is None:
+            return web.json_response(status=403, data={'error': {'message': 'Invalid session or room doesn`t exist'}})
+
+        username = row.get('username')
+        logging.debug(username)
+        async with conn.begin() as tr:
+            result = await conn.execute(delete(Room).where(Room.id == room_id).where(Room.initiator == username))
+            if result.rowcount == 0:
+                return web.json_response(status=403, data={'error': {'message': 'You are not the room initiator'}})            
+
+            await conn.execute(delete(RoomUser).where(RoomUser.room_id == data['room_id']))
 
     return web.json_response(status=200, data={'message': 'Room was deleted'})
