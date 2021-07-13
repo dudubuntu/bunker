@@ -269,3 +269,23 @@ async def game_start(request: web.Request, data:dict):
             await conn.execute(update(Room).values(state=ROOM_STATES['opening']).where(Room.id == room_row['id']))
 
         return web.json_response(status=200, data={'message': 'The game is started'})
+
+
+@game_sess_id_cookie_required
+@json_content_type_required
+@contains_fields_or_return_error_responce('room_id')
+async def player_get_current(request: web.Request, data:dict):
+    async with request.app['db'].acquire() as conn:
+        user_row = await get_user_row_in_room_or_error_response(conn, data['room_id'], request.cookies['game_sess_id'])
+        if isinstance(user_row, web.Response):
+            return user_row
+
+        data = {
+            'room_id': user_row['room_id'],
+            'username': user_row['username'],
+            'info': user_row['info'],
+            'opened': user_row['opened'],
+            'card_opened_numbers': user_row['card_opened_numbers'],
+            'state': user_row['state'],
+        }
+        return web.json_response(status=200, data=data)

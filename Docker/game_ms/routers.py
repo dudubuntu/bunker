@@ -14,3 +14,4 @@ def setup_routers(app: web.Application):
     app.router.add_route('GET', '/api/v1/player_ready', player_ready)
     
     app.router.add_route('GET', '/api/v1/game_start', game_start)
+    app.router.add_route('GET', '/api/v1/player_get_current', player_get_current)
