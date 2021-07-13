@@ -8,6 +8,7 @@ import json
 import datetime
 import jwt
 import logging
+import random
 
 from db import Room, User, Player, RoomUser, RoomVote, ROOM_STATES, ROOMUSER_STATES
 from utils import contains_fields_or_return_error_responce, json_content_type_required, contains_fields_or_return_error_responce, DateTimeJsonEncoder, game_sess_id_cookie_required, db_max_id, db_max_column_value_in_room, get_user_row_in_room_or_error_response
@@ -224,3 +225,19 @@ async def player_kick(request: web.Request, data: dict):
         #TODO Добавить транзакцию на проверку: если в комнате нет хотя бы одного пользователя в статусе не kicked, left то удалить комнату
 
         return web.json_response(status=200, data={'error': {'message': f'User {data["aim_username"]} was successfully kicked.'}})
+
+
+@game_sess_id_cookie_required
+@json_content_type_required
+@contains_fields_or_return_error_responce('room_id')
+async def player_ready(request: web.Request, data: dict):
+    async with request.app['db'].acquire() as conn:
+        user_row = await get_user_row_in_room_or_error_response(conn, data['room_id'], request.cookies['game_sess_id'])
+        if isinstance(user_row, web.Response):
+            return user_row
+
+        result = await conn.execute(update(RoomUser).values(state=ROOMUSER_STATES['ready']).where(RoomUser.room_id == data['room_id']).where(RoomUser.game_sess_id == request.cookies['game_sess_id']))
+        if result.rowcount == 0:
+            return web.json_response(status=500, data={'error': {'message': 'Something went wrong.'}})
+
+        return web.json_response(status=200, data={'message': 'You`re ready!'})

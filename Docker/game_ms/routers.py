@@ -11,3 +11,4 @@ def setup_routers(app: web.Application):
     
     app.router.add_route('GET', '/api/v1/player_change_nickname', player_change_username)
     app.router.add_route('GET', '/api/v1/player_kick', player_kick)
+    app.router.add_route('GET', '/api/v1/player_ready', player_ready)
