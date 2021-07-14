@@ -4,6 +4,7 @@ from functools import wraps
 import json
 import datetime
 import jwt
+import logging
 from sqlalchemy import select
 from sqlalchemy.sql.expression import func as sa_func
 import random
@@ -115,3 +116,32 @@ def init_game(quantity_players):
         players_list[1].append(Player().get_json())
     
     return players_list
+
+
+def calculate_opening_quantity(quantity_players, lap, config: dict):
+    """Calculate quantity open characteristics"""
+    quantity_min_players, quantity_laps, quantity_total_chars = config.get('GAME_MIN_PLAYERS_QUANTITY', 4), config.get('GAME_LAPS_QUANTITY', quantity_players // 2), config.get('GAME_CHARS_QUANTITY', 11)
+
+    assert isinstance(config, dict)
+    logging.debug(f'{quantity_min_players}, {quantity_players}')
+    assert quantity_min_players <= quantity_players
+    assert lap > 0
+    assert quantity_total_chars > 6
+
+    if not (quantity_players >= quantity_laps + 2):
+        chars_per_lap = [3, 3]
+    else:
+        chars_per_lap = []
+        k = quantity_total_chars - 6
+        i = 0
+        while k > 0:
+            if i == quantity_laps - 1:
+                i = 0
+            if len(chars_per_lap) < quantity_laps:
+                chars_per_lap.append(1)
+            else:
+                chars_per_lap[i] += 1
+                i += 1
+            k -= 1
+
+    return chars_per_lap[lap - 1]

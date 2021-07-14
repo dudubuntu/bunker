@@ -11,7 +11,7 @@ import logging
 import random
 
 from db import Room, User, Player, RoomUser, RoomVote, ROOM_STATES, ROOMUSER_STATES
-from utils import contains_fields_or_return_error_responce, json_content_type_required, contains_fields_or_return_error_responce, DateTimeJsonEncoder, game_sess_id_cookie_required, db_max_id, db_max_column_value_in_room, get_user_row_in_room_or_error_response, init_game
+from utils import contains_fields_or_return_error_responce, json_content_type_required, contains_fields_or_return_error_responce, DateTimeJsonEncoder, game_sess_id_cookie_required, db_max_id, db_max_column_value_in_room, get_user_row_in_room_or_error_response, init_game, calculate_opening_quantity
 
 
 @json_content_type_required
@@ -269,6 +269,38 @@ async def game_start(request: web.Request, data:dict):
             await conn.execute(update(Room).values(state=ROOM_STATES['opening']).where(Room.id == room_row['id']))
 
         return web.json_response(status=200, data={'message': 'The game is started'})
+
+
+@game_sess_id_cookie_required
+@json_content_type_required
+@contains_fields_or_return_error_responce('room_id')
+async def game_info(request: web.Request, data:dict):
+    async with request.app['db'].acquire() as conn:
+        user_row = await get_user_row_in_room_or_error_response(conn, data['room_id'], request.cookies['game_sess_id'])
+        if isinstance(user_row, web.Response):
+            return user_row
+            
+        room_row = await (await conn.execute(select(Room).where(Room.id == data['room_id']))).fetchone()
+        users_rows = await (await conn.execute(select(RoomUser).where(RoomUser.room_id == data['room_id']).where(RoomUser.state == ROOMUSER_STATES['in_game']))).fetchall()
+
+        data = {
+            'room_id': room_row['id'],
+            'state': room_row['state'],
+            'turn': room_row['turn'],
+            #TODO добавлять ли настройку столько кругов играть
+            'opening_quantity': calculate_opening_quantity(room_row['quantity_players'], room_row['lap'], request.app['config']),
+            'quantity_players': room_row['quantity_players'],
+            'players': [
+                {
+                    'player_number': player['player_number'],
+                    'username': player['username'],
+                    'state': player['state'],
+                    'info': {
+                        char: player['info'][char] for char in player['opened'].strip().split(',')
+                    } if len(player['opened'].strip()) != 0 else {},
+                } for player in users_rows]
+        }
+        return web.json_response(status=200, data=data)
 
 
 @game_sess_id_cookie_required
