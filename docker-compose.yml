@@ -11,9 +11,11 @@ services:
 
 
     pgadmin:
-        image: fenglc/pgadmin4
+        build: 
+            context: ./Docker/pgadmin
+            dockerfile: Dockerfile
         ports:
-            - 5050:5050
+            - 5050:80
         restart: always
         links: 
             - postgres
@@ -51,3 +53,25 @@ services:
         env_file: ./env.env
         volumes:
             - ./Docker/game_ms/:/usr/src/app/
+
+    nginx:
+        build:
+            context: ./Docker/nginx/
+            dockerfile: Dockerfile
+        ports:
+            - 80:80
+        volumes:
+            - ./Docker/bunker_proj/bunker_proj/static/:/static/
+            - ./Docker/bunker_proj/bunker_proj/media/:/media/
+            - ./Docker/nginx/nginx.conf:/etc/nginx/conf.d/nginx.conf
+        links:
+            - postgres
+            - pgadmin 
+            - web
+            - game_ms
+        depends_on:
+            - postgres
+            - pgadmin 
+            - web
+            - game_ms
+        restart: always

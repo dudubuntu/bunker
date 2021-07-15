@@ -15,4 +15,8 @@ APP_CONFIG = {
     'LOG_LEVEL': os.environ.get('LOG_LEVEL'),
     'LOG_FILENAME': os.environ.get('LOG_FILENAME'),
     'LOG_FILEPATH': os.environ.get('LOG_FILEPATH'),
+    
+    'GAME_MIN_PLAYERS_QUANTITY': 4,
+    'GAME_LAPS_QUANTITY': 4,
+    'GAME_CHARS_QUANTITY': 11,  #Общее количество доступных характеристик: роствес, пол, возрастстаж, ...
 }
