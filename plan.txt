@@ -91,20 +91,23 @@ FAQ & Првила игры           faq_and_rules_view
 
     * is_authorized
 
+с 2** статусами приходит обычно json вида {"message": "какое-то сообщение об успехе"}
+c 4** статусами приходит json вида {"error": {"message": "какая ошибка", "extra": []}}      #extra приходит не везде
+
 Главная
     room_connect {"room_id": "", "password": ""}    200 или 403
 
 Комната
-    room_create {"nickname": "", "password": "", "quantity_players": "", "location": ""}
-    room_delete {"room_id": "", "nickname": ""}    200 или 400
-    room_info {"room_id": ""}      response {"room_id": "", "state": "waiting", "connected": [{"nickname": "", "is_ready": Boolean}, ]}
-    player_change_username {"room_id": "", "username": "", "new_nickname": ""}     400 если никнейм существует в комнате иначе 200
-    player_kick {"room_id": "", "nickname": ""}
+    room_create {"initiator": "", "password": "", "quantity_players": "", "location": ""}       Response {"message": "Successfully created", "room_id": 12345}
+    room_delete {"room_id": ""}    200 или 400
+    room_info {"room_id": ""}      response {"id": "", "initiator": "", "state": "waiting", "connected": [{"username": "", "state": ""}, ]}
+    player_change_username {"room_id": "", "new_nickname": ""}     200 или 400
+    player_kick {"room_id": "", "aim_nickname": ""}     200, 400,403, 500
     player_ready {"room_id": ""}        200 или 400
     ***
         game_start {"room_id": ""}       200
-        game_info   response {"room_id": "", "state": "", "turn": "", "opening_quantity": "", "players": [{"player_number": "", "username": "", "info": {}, "status": ""}, ]}   # opening_quantity высчитывается на бэке (сколько вскрывать хартик)  |   в info приходят не все хар-ки, а только вскрытые
-        player_get_current {"room_id": ""}      response {"room_id": "", "usernmae": "", "info": {}, "opened": [], "card_opened_numbers": [], "state": ""}
+        game_info {"room_id": ""}   response {"room_id": 1000, "state": "opening", "turn": 1, "opening_quantity": 3, "quantity_players": 4, "players": [{"player_number": 2, "username": "admin", "state": "in_game", "info": {}}]}   # opening_quantity высчитывается на бэке (сколько вскрывать хартик)  |   в info приходят не все хар-ки, а только вскрытые
+        player_get_current {"room_id": ""}      response {"room_id": 1000, "username": "admin", "info": {"bio": "", "cards": ...}, "opened": "", "card_opened_numbers": "", "state": "in_game"}
         player_open_chars {"room_id": "", "nickname": "", open: []}     200 или 400
         player_use_card {"room_id": "", "username": "", "card_number": ""}      200 или 400
         player_make_vote {"room_id": "", "initiator": "", "votes": ["username_aim1", ...]}
