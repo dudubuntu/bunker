@@ -1,6 +1,30 @@
+from aiohttp.abc import AbstractAccessLogger
 from aiohttp import web
 from functools import wraps
 import json
+import datetime
+import jwt
+from sqlalchemy import select
+from sqlalchemy.sql.expression import func as sa_func
+
+
+class AccessLogger(AbstractAccessLogger):
+
+    def log(self, request, response, time):
+        self.logger.info(f'[%(asctime)s] [%(process)d] [%(levelname)s] '
+                         f'{request.remote} '
+                         f'"{request.method} {request.path} '
+                         f'done in {time}s: {response.status}')
+
+
+
+
+class DateTimeJsonEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, datetime.datetime):
+            return o.__str__()
+        return super().default(o)
+
 
 
 def json_content_type_required(func):
@@ -39,3 +63,32 @@ def contains_fields_or_return_error_responce(*fields):
             
         return wrapper2
     return wrapper1
+
+
+def game_sess_id_cookie_required(func):
+    """ """
+    @wraps(func)
+    async def wrapper(request, *args, **kwargs):
+        if not 'game_sess_id' in request.cookies:
+            return web.json_response(status=403, data={'error': {'message': 'game_sess_id cookies is required.'}})
+        
+        return await func(request, *args, **kwargs)
+    return wrapper
+
+
+async def db_max_id(conn, Table, default, max_plus_one):
+    """
+    if no rows use default
+    else max id of rows (max + 1 if max_plus_one)
+    """
+    id = (await (await conn.execute(select(sa_func.max(Table.id)))).fetchone())[0]
+    if id:
+        return id if not max_plus_one else id + 1
+    else:
+        return default
+
+
+async def db_max_column_value_in_room(conn, Table, room_id, column):
+    conn_res = await conn.execute(select(Table).where(Table.room_id == room_id).order_by(getattr(Table, column).desc()))
+    max = (await conn_res.first())[column]
+    return max
