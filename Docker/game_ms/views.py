@@ -27,7 +27,6 @@ async def room_connect(request: web.Request, data: dict):
 
     #TODO добавить проверку на статус комнаты - впускать только в статусе waiting
 
-    room_id = None
     async with request.app['db'].acquire() as conn:
         room_row = await (await conn.execute(select(Room).where(Room.id == data['room_id']).where(Room.password == data['password']))).fetchone()
         if not room_row:
@@ -115,8 +114,8 @@ async def room_create(request: web.Request, data:dict):
             room_user_id = await db_max_id(conn, RoomUser, 1, True)
             row = await conn.execute(insert(RoomUser).values(id=room_user_id, username=data['initiator'], player_number=1, info={}, opened='', state=ROOMUSER_STATES['ready'], card_opened_numbers='', room_id=room_id, game_sess_id=game_sess_id))
             
-            response.text = json.dumps({'message': 'Successfully created', 'room_id': room_id})
-            return response  
+        response.text = json.dumps({'message': 'Successfully created', 'room_id': room_id})
+        return response  
 
 
 @game_sess_id_cookie_required
@@ -255,7 +254,7 @@ async def game_start(request: web.Request, data:dict):
         room_row = await (await conn.execute(select(Room).where(Room.id == data['room_id']))).fetchone()
         if user_row['username'] != room_row['initiator']:
             return web.json_response(status=403, data={'error': {'message': 'You have no priveleges to do this.'}})
-        if room_row['state'] != 'waiting':
+        if room_row['state'] != ROOM_STATES['waiting']:
             return web.json_response(status=400, data={'error': {'message': 'The game is already started'}})
 
         roomuser_list = await (await conn.execute(select(RoomUser).where(RoomUser.room_id == room_row['id']).where(RoomUser.state == ROOMUSER_STATES['ready']))).fetchall()
