@@ -22,7 +22,6 @@ ROOMUSER_STATES = {
 
 ROOMVOTE_STATES = {
     'waiting_first_time': 'waiting_first_time',
-    'first_time_done': 'first_time_done',
     'waiting_second_time': 'waiting_second_time',
     'done': 'done',
 }
@@ -128,9 +127,10 @@ class RoomVote(Base):
     __tablename__ = 'web_roomvote'
 
     id = Column('id', Integer(), primary_key=True)
-    vote_lap = Column('vote_lap', Integer())
+    lap = Column('lap', Integer())
     state = Column('state', String(100))
     extra = Column('extra', JSON())
     room_id = Column('room_id', ForeignKey('web_room.id'))
+    result = Column('result', String(100), nullable=True)
 
     room = relationship('Room', back_populates='room_votes')
