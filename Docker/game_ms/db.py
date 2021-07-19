@@ -132,6 +132,6 @@ class RoomVote(Base):
     state = Column('state', String(100))
     extra = Column('extra', JSON())
     room_id = Column('room_id', ForeignKey('web_room.id'))
-    result = Column('result', String(100), nullable=True)
+    result = Column('result', JSON(), nullable=True)
 
     room = relationship('Room', back_populates='room_votes')

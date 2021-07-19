@@ -92,7 +92,7 @@ class RoomVote(models.Model):
     lap = models.PositiveSmallIntegerField(default=1)
     state = models.CharField(max_length=100, choices=STATES)
     extra = models.JSONField()
-    result = models.CharField(max_length=100, blank=True, null=True)
+    result = models.JSONField(null=True)
 
     def __str__(self):
         return f'{self.room_id}-lap{self.room.id}'
