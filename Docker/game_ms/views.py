@@ -160,6 +160,7 @@ async def room_delete(request: web.Request, data:dict):
                 return web.json_response(status=403, data={'error': {'message': 'You are not the room initiator'}})            
 
             await conn.execute(delete(RoomUser).where(RoomUser.room_id == data['room_id']))
+            await conn.execute(delete(RoomVote).where(RoomVote.room_id == data['room_id']))
 
     return web.json_response(status=200, data={'message': 'Room was deleted'})
 
