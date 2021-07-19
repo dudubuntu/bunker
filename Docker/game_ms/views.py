@@ -10,8 +10,9 @@ import jwt
 import logging
 import random
 
-from db import Room, User, Player, RoomUser, RoomVote, ROOM_STATES, ROOMUSER_STATES
-from utils import contains_fields_or_return_error_responce, json_content_type_required, contains_fields_or_return_error_responce, DateTimeJsonEncoder, game_sess_id_cookie_required, db_max_id, db_max_column_value_in_room, get_user_row_in_room_or_error_response, init_game, calculate_opening_quantity
+from db import Room, User, Player, RoomUser, RoomVote, ROOM_STATES, ROOMUSER_STATES, ROOMVOTE_STATES
+from utils import contains_fields_or_return_error_responce, json_content_type_required, contains_fields_or_return_error_responce, DateTimeJsonEncoder, game_sess_id_cookie_required, db_max_id, db_max_column_value_in_room, get_user_row_in_room_or_error_response, init_game, calculate_opening_quantity, voting_to_kick
+from game_help import DATA
 
 
 @json_content_type_required
@@ -258,15 +259,22 @@ async def game_start(request: web.Request, data:dict):
         if room_row['state'] != ROOM_STATES['waiting']:
             return web.json_response(status=400, data={'error': {'message': 'The game is already started'}})
 
-        roomuser_list = await (await conn.execute(select(RoomUser).where(RoomUser.room_id == room_row['id']).where(RoomUser.state == ROOMUSER_STATES['ready']))).fetchall()
-        order_chars_list = [*init_game(room_row['quantity_players'])]
+        roomusers_rows = await (await conn.execute(select(RoomUser).where(RoomUser.room_id == room_row['id']).where(RoomUser.state == ROOMUSER_STATES['ready']))).fetchall()
+        order_chars_list = [*init_game(len(roomusers_rows))]
 
-        async with conn.begin():
-            for roomuser, order_number, char in zip(roomuser_list, *order_chars_list):
-                logging.debug(roomuser, order_number, char)
+        async with conn.begin() as tr:
+            await conn.execute(update(RoomUser).values(player_number=0, state=ROOMUSER_STATES['left']).where(RoomUser.room_id == room_row['id']).where(RoomUser.state != ROOMUSER_STATES['ready']))
+            
+            i = 0
+            for roomuser, order_number, char in zip(roomusers_rows, *order_chars_list):
                 result = await conn.execute(update(RoomUser).values(state=ROOMUSER_STATES['in_game'], player_number=order_number, info=char).where(RoomUser.room_id == room_row['id']).where(RoomUser.game_sess_id == roomuser['game_sess_id']))
+                i += 1
 
             await conn.execute(update(Room).values(state=ROOM_STATES['opening']).where(Room.id == room_row['id']))
+
+            if i < request.app['config']['GAME_MIN_PLAYERS_QUANTITY']:
+                await tr.rollback()
+                return web.json_response(status=400, data={'error': {'message': 'Not enough users to start the game'}})
 
         return web.json_response(status=200, data={'message': 'The game is started'})
 
