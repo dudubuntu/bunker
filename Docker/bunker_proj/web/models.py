@@ -62,9 +62,10 @@ class Room(models.Model):
 class RoomUser(models.Model):
     STATES = (
         ('ready', 'ready'),
+        ('kicked', 'kicked'),
         ('not_ready', 'not_ready'),
         ('in_game', 'in_game'),
-        ('kicked', 'kicked'),
+        ('kicked_by_vote', 'kicked_by_vote'),
         ('left', 'left'),
     )
     room = models.ForeignKey('Room', on_delete=models.CASCADE, related_name='room_users')
@@ -84,14 +85,14 @@ class RoomUser(models.Model):
 class RoomVote(models.Model):
     STATES = (
         ('waiting_first_time', 'waiting_first_time'),
-        ('first_time_done', 'first_time_done'),
         ('waiting_second_time', 'waiting_second_time'),
         ('done', 'done'),
     )
     room = models.ForeignKey('Room', on_delete=models.CASCADE, related_name='votes')
-    vote_lap = models.PositiveSmallIntegerField(default=1)
+    lap = models.PositiveSmallIntegerField(default=1)
     state = models.CharField(max_length=100, choices=STATES)
     extra = models.JSONField()
+    result = models.JSONField(null=True)
 
     def __str__(self):
         return f'{self.room_id}-lap{self.room.id}'
