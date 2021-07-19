@@ -124,28 +124,45 @@ def get_laps_quantity(quantity_players):
 
 def calculate_opening_quantity(quantity_players, lap, config: dict):
     """Calculate quantity open characteristics"""
+    assert isinstance(config, dict)
+
     quantity_min_players, quantity_laps, quantity_total_chars = config.get('GAME_MIN_PLAYERS_QUANTITY', 4), config.get('GAME_LAPS_QUANTITY', quantity_players // 2), config.get('GAME_CHARS_QUANTITY', 11)
 
-    assert isinstance(config, dict)
-    logging.debug(f'{quantity_min_players}, {quantity_players}')
     assert quantity_min_players <= quantity_players
     assert lap > 0
     assert quantity_total_chars > 6
 
-    if not (quantity_players >= quantity_laps + 2):
-        chars_per_lap = [3, 3]
-    else:
-        chars_per_lap = []
-        k = quantity_total_chars - 6
-        i = 0
-        while k > 0:
-            if i == quantity_laps - 1:
-                i = 0
-            if len(chars_per_lap) < quantity_laps:
-                chars_per_lap.append(1)
-            else:
-                chars_per_lap[i] += 1
-                i += 1
-            k -= 1
+    chars_per_lap = []
+    k = quantity_total_chars - 6
+    i = 0
+    while k > 0:
+        logging.debug(f'{chars_per_lap}  k:{k}  i:{i}')
+        if i == get_laps_quantity(quantity_players):
+            i = 0
+        if len(chars_per_lap) < get_laps_quantity(quantity_players):
+            chars_per_lap.append(1)
+        else:
+            chars_per_lap[i] += 1
+            i += 1
+        k -= 1
 
-    return chars_per_lap[lap - 1]
+    return chars_per_lap
+
+
+def voting_to_kick(votes):
+    results = {}
+    for vote in votes:
+        if vote in results:
+            results[vote] += 1
+        else:
+            results.update({vote: 1})
+    results = results.items()
+    results = sorted(results, key=lambda x: x[1], reverse=True)
+    to_kick = {}
+    max = results[0][1]
+    for result in results:
+        if result[1] < max:
+            continue
+        to_kick.update({result[0]: result[1]})
+    logging.debug(results, to_kick)
+    return to_kick
