@@ -323,6 +323,7 @@ async def player_get_current(request: web.Request, data:dict):
         data = {
             'room_id': user_row['room_id'],
             'username': user_row['username'],
+            'player_number': user_row['player_number'],
             'info': user_row['info'],
             'opened': user_row['opened'],
             'card_opened_numbers': user_row['card_opened_numbers'],
