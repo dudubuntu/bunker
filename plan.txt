@@ -95,7 +95,7 @@ FAQ & Првила игры           faq_and_rules_view
 c 4** статусами приходит json вида {"error": {"message": "какая ошибка", "extra": []}}      #extra приходит не везде
 
 Главная
-    room_connect {"room_id": "", "password": ""}    200 или 403
+    room_connect {"room_id": "", "password": "", "username": ""}    200 или 403
 
 Комната
     room_create {"initiator": "", "password": "", "quantity_players": "", "location": ""}       Response {"message": "Successfully created", "room_id": 12345}

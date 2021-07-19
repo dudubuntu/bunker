@@ -16,7 +16,7 @@ from game_help import DATA
 
 
 @json_content_type_required
-@contains_fields_or_return_error_responce('room_id', 'password')
+@contains_fields_or_return_error_responce('room_id', 'password', 'username')
 async def room_connect(request: web.Request, data: dict):
     """
     Request {"room_id": 1234}
@@ -83,9 +83,13 @@ async def room_connect(request: web.Request, data: dict):
                 return web.json_response(status=500, data={'error': {'message': 'Something went wrong.'}})
         else:
             room_user_id = await db_max_id(conn, RoomUser, 1, True)
-            player_number = await db_max_column_value_in_room(conn, RoomUser, room_id, 'player_number') + 1
+            
+            result = await (await conn.execute(select(RoomUser.username).where(RoomUser.room_id == data['room_id']).where(RoomUser.username == data['username']))).fetchall()
+            if result:
+                return web.json_response(status=400, data={'error': {'message': 'This username is already in room.'}})
+
             await conn.execute(insert(RoomUser, [
-                {'id': room_user_id, 'username': f'user-{player_number}', 'player_number': player_number, 'state': 'not_ready', 'room_id': room_id, 'game_sess_id': game_sess_id, 'info': {}, 'opened': '', 'card_opened_numbers': ''}
+                {'id': room_user_id, 'username': data['username'], 'player_number': 0, 'state': 'not_ready', 'room_id': room_id, 'game_sess_id': game_sess_id, 'info': {}, 'opened': '', 'card_opened_numbers': ''}
             ]))
 
         #TODO добавлять ли редирект?
@@ -189,13 +193,9 @@ async def player_change_username(request: web.Request, data:dict):
 
         async with conn.begin() as tr:
             result = await conn.execute(update(RoomUser).values(username=data['new_username']).where(RoomUser.id == user_row['id']))
-            if result.rowcount == 0:
-                return web.json_response(status=500, data={'error': {'message': 'Something went wrong.'}})
             
             if is_owner:
                 result = await conn.execute(update(Room).values(initiator=data['new_username']).where(Room.id == data['room_id']))
-                if result.rowcount == 0:
-                    return web.json_response(status=500, data={'error': {'message': 'Something went wrong.'}})
         
         return web.json_response(status=200, data={'error': {'message': 'Username was changed'}})
 
