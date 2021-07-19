@@ -69,7 +69,7 @@ async def room_connect(request: web.Request, data: dict):
                 user_left = True
 
         quantity_players = (await (await conn.execute(select(Room).where(Room.id == room_id))).first())['quantity_players']
-        current_quantity = (await (await conn.execute(select(sa_func.count(RoomUser.id)).where(RoomUser.room_id == room_id).where(RoomUser.state != ROOMUSER_STATES['left']))).first())[0]
+        current_quantity = (await (await conn.execute(select(sa_func.count(RoomUser.id)).where(RoomUser.room_id == room_id).where(RoomUser.state != ROOMUSER_STATES['kicked']).where(RoomUser.state != ROOMUSER_STATES['left']))).first())[0]
         if not current_quantity < quantity_players:
             #TODO изменить статус
             response.text = json.dumps({'error': {'message': 'The room is full'}})
