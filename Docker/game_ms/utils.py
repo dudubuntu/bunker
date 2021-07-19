@@ -118,6 +118,10 @@ def init_game(quantity_players):
     return players_list
 
 
+def get_laps_quantity(quantity_players):
+    return quantity_players // 2
+
+
 def calculate_opening_quantity(quantity_players, lap, config: dict):
     """Calculate quantity open characteristics"""
     quantity_min_players, quantity_laps, quantity_total_chars = config.get('GAME_MIN_PLAYERS_QUANTITY', 4), config.get('GAME_LAPS_QUANTITY', quantity_players // 2), config.get('GAME_CHARS_QUANTITY', 11)
