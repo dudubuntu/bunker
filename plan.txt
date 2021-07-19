@@ -108,10 +108,10 @@ c 4** статусами приходит json вида {"error": {"message": "�
         game_start {"room_id": ""}       200
         game_info {"room_id": ""}   response {"room_id": 1000, "state": "opening", "turn": 1, "opening_quantity": 3, "quantity_players": 4, "players": [{"player_number": 2, "username": "admin", "state": "in_game", "info": {}}]}   # opening_quantity высчитывается на бэке (сколько вскрывать хартик)  |   в info приходят не все хар-ки, а только вскрытые
         player_get_current {"room_id": ""}      response {"room_id": 1000, "username": "admin", "info": {"bio": "", "cards": ...}, "opened": "", "card_opened_numbers": "", "state": "in_game"}
-        player_open_chars {"room_id": "", "nickname": "", open: []}     200 или 400
+        player_open_chars {"room_id": "", "open": []}     200 или 400
         player_use_card {"room_id": "", "username": "", "card_number": ""}      200 или 400
-        player_make_vote {"room_id": "", "initiator": "", "votes": ["username_aim1", ...]}
-        game_votes_info {"room_id": "", "lap": ""}     response {"state": "", "extra": [{"initiator": "", "votes": ["username_aim1", ...]}, {}, ...]}       # если state waiting_first_time то extra пустое
+        player_make_vote {"room_id": "", "votes": ["username_aim1", ...]}
+        game_votes_info {"room_id": ""}     response {"state": "", "extra": [{"initiator": "", "votes": ["username_aim1", ...]}, {}, ...]}       # если state waiting_first_time то extra пустое
         game_results {"room_id": ""}        response {}
 
     ***

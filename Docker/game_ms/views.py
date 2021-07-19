@@ -11,7 +11,7 @@ import logging
 import random
 
 from db import Room, User, Player, RoomUser, RoomVote, ROOM_STATES, ROOMUSER_STATES, ROOMVOTE_STATES
-from utils import contains_fields_or_return_error_responce, json_content_type_required, contains_fields_or_return_error_responce, DateTimeJsonEncoder, game_sess_id_cookie_required, db_max_id, db_max_column_value_in_room, get_user_row_in_room_or_error_response, init_game, calculate_opening_quantity, voting_to_kick
+from utils import contains_fields_or_return_error_responce, json_content_type_required, contains_fields_or_return_error_responce, DateTimeJsonEncoder, game_sess_id_cookie_required, db_max_id, db_max_column_value_in_room, get_user_row_in_room_or_error_response, init_game, calculate_opening_quantity, voting_to_kick, get_laps_quantity
 from game_help import DATA
 
 
@@ -294,6 +294,7 @@ async def game_info(request: web.Request, data:dict):
         data = {
             'room_id': room_row['id'],
             'state': room_row['state'],
+            'lap': room_row['lap'],
             'turn': room_row['turn'],
             #TODO добавлять ли настройку столько кругов играть
             'opening_quantity': calculate_opening_quantity(room_row['quantity_players'], room_row['lap'], request.app['config']),
@@ -330,3 +331,178 @@ async def player_get_current(request: web.Request, data:dict):
             'state': user_row['state'],
         }
         return web.json_response(status=200, data=data)
+
+
+@game_sess_id_cookie_required
+@json_content_type_required
+@contains_fields_or_return_error_responce('room_id', 'open')
+async def player_open_chars(request: web.Request, data: dict):
+    async with request.app['db'].acquire() as conn:
+        user_row = await get_user_row_in_room_or_error_response(conn, data['room_id'], request.cookies['game_sess_id'])
+        if isinstance(user_row, web.Response):
+            return user_row
+
+        room_row = await (await conn.execute(select(Room).where(Room.id == user_row['room_id']))).fetchone()
+        if user_row['player_number'] != room_row['turn']:
+            return web.json_response(status=400, data={'error': {'message': 'Currently it is not your turn.'}})
+        if room_row['state'] != ROOM_STATES['opening']:
+            return web.json_response(status=400, data={'error': {'message': f'The game is currrently in {room_row["state"]} state.'}})
+        
+        roomusers_rows = await (await conn.execute(select(RoomUser).where(RoomUser.room_id == room_row['id']).where(RoomUser.state == ROOMUSER_STATES['in_game']).order_by(RoomUser.player_number))).fetchall()
+
+        try:
+            isinstance(data['open'], list)
+        except TypeError:
+            return web.json_response(status=400, data={'error': {'message': '"open" must be an array object'}})
+
+        opened = user_row['opened'].strip().split(',')
+        for open in data['open']:
+            if not open in opened:
+                opened.append(open)
+        opened = ','.join(opened)[1:] if ','.join(opened)[0] == ',' else ','.join(opened)
+        lap, turn, state = room_row['lap'], room_row['turn'], room_row['state']
+
+        async with conn.begin():
+            await conn.execute(update(RoomUser).values(opened=opened).where(RoomUser.room_id == room_row['id']).where(RoomUser.game_sess_id == user_row['game_sess_id']))
+
+            if turn == roomusers_rows[-1]['player_number']:
+                await conn.execute(insert(RoomVote).values(lap=lap, state=ROOMVOTE_STATES['waiting_first_time'], extra={'first_lap': {}}, room_id=room_row['id'], result=None))
+                state = ROOM_STATES['voting']
+            else:
+                for i in range(len(roomusers_rows)):
+                    if roomusers_rows[i]['player_number'] == turn:
+                        turn = roomusers_rows[i + 1]['player_number']
+                        break
+            await conn.execute(update(Room).values(turn=turn, state=state).where(Room.id == room_row['id']))
+
+        return web.json_response(status=200, data={'message': 'Successfully opened.'})
+
+
+@game_sess_id_cookie_required
+@json_content_type_required
+@contains_fields_or_return_error_responce('room_id', 'votes')
+async def player_make_vote(request: web.Request, data: dict):
+    async with request.app['db'].acquire() as conn:
+        user_row = await get_user_row_in_room_or_error_response(conn, data['room_id'], request.cookies['game_sess_id'])
+        if isinstance(user_row, web.Response):
+            return user_row
+
+        room_row = await (await conn.execute(select(Room).where(Room.id == user_row['room_id']))).fetchone()
+        if room_row['state'] != ROOM_STATES['voting']:
+            return web.json_response(status=400, data={'error': {'message': 'Voting is over'}})
+        if user_row['username'] in data['votes']:
+            return web.json_response(status=400, data={'error': {'message': 'You can`t vote for yourself.'}})
+
+        roomvote_row = await (await conn.execute(select(RoomVote).where(RoomVote.room_id == user_row['room_id']).where(RoomVote.lap == room_row['lap']))).fetchone()
+        roomuser_row = await (await conn.execute(select(RoomUser).where(RoomUser.room_id == room_row['id']).where(RoomUser.state == ROOMUSER_STATES['in_game']))).fetchall()
+        state, result, extra = roomvote_row['state'], roomvote_row['result'], roomvote_row['extra']
+
+        if state == ROOMVOTE_STATES['waiting_first_time']:
+            if user_row['username'] in extra['first_lap']:
+                return web.json_response(status=400, data={'error': {'message': 'You`ve already voted.'}})
+
+            extra['first_lap'].update({user_row['username']: data['votes']})
+
+            if len(extra['first_lap']) == len(roomuser_row):
+                votes = []
+                for user_votes in extra['first_lap'].values():
+                    for vote in user_votes:
+                        votes.append(vote)
+
+                result = voting_to_kick(votes)
+                if len(result) != 1:
+                    state = ROOMVOTE_STATES['waiting_second_time']
+                    extra['second_lap'] = {}
+                else:
+                    state = ROOMVOTE_STATES['done']
+
+        elif state == ROOMVOTE_STATES['waiting_second_time']:
+            if user_row['username'] in extra['second_lap']:
+                return web.json_response(status=400, data={'error': {'message': 'You`ve already voted.'}})
+
+            if user_row['username'] in result:
+                return web.json_response(status=400, data={'error': {'message': 'You are unable to vote because the voting is against you'}})
+
+            extra['second_lap'].update({user_row['username']: data['votes']})
+
+            logging.debug(len(extra['second_lap']))
+            logging.debug(len(roomuser_row))
+            logging.debug(len(result))
+            if len(extra['second_lap']) == len(roomuser_row) - len(result):
+                votes = []
+                for user_votes in extra['second_lap'].values():
+                    for vote in user_votes:
+                        votes.append(vote)
+
+                result = voting_to_kick(votes)
+                if len(result) != 1:
+                    result = None
+                    
+                state = ROOMVOTE_STATES['done']
+
+        async with conn.begin():
+            #TODO переделать result в JSON
+            await conn.execute(update(RoomVote).values(state=state, result=result if result else None, extra=extra).where(RoomVote.room_id == room_row['id']).where(RoomVote.lap == room_row['lap']))
+
+            if state == ROOMVOTE_STATES['done']:
+                if result:
+                    for username in result.keys():
+                        await conn.execute(update(RoomUser).values(state=ROOMUSER_STATES['kicked_by_vote']).where(RoomUser.room_id == room_row['id']).where(RoomUser.username == username))
+                if room_row['lap'] == get_laps_quantity(room_row['quantity_players']):
+                    await conn.execute(update(Room).values(state=ROOM_STATES['finished'], closed=datetime.datetime.utcnow()))
+                else:
+                    await conn.execute(update(Room).values(state=ROOM_STATES['opening'], lap=room_row['lap'] + 1, turn=1).where(Room.id == room_row['id']))
+
+        return web.json_response(status=200, data={"message": "Successfuly voted."})
+
+
+@game_sess_id_cookie_required
+@json_content_type_required
+@contains_fields_or_return_error_responce('room_id')
+async def game_votes_info(request: web.Request, data: dict):
+    async with request.app['db'].acquire() as conn:
+        user_row = await get_user_row_in_room_or_error_response(conn, data['room_id'], request.cookies['game_sess_id'])
+        if isinstance(user_row, web.Response):
+            return user_row
+
+        room_row = await (await conn.execute(select(Room).wehere(Room.id == user_row['room_id']))).fetchone()
+        roomvote_row = await (await conn.execute(select(RoomVote).wehere(RoomVote.user_id == user_row['room_id']).where(RoomVote.lap == room_row['lap']))).fetchone()
+
+        data = {
+            'room_id': room_row['id'],
+            'lap': room_row['lap'],
+            'state': roomvote_row['state'],
+            'extra': roomvote_row['extra']['fist_lap'] if not 'second_lap' in roomvote_row['extra'] else room_row['extra']['second_lap'],
+            'result': roomvote_row['result']
+        }
+
+        return web.json_response(status=200, data=data)
+
+
+@game_sess_id_cookie_required
+@json_content_type_required
+@contains_fields_or_return_error_responce('room_id')
+async def game_results(request: web.Request, data: dict):
+    async with request.app['db'].acquire() as conn:
+        user_row = await get_user_row_in_room_or_error_response(conn, data['room_id'], request.cookies['game_sess_id'])
+        if isinstance(user_row, web.Response):
+            return user_row
+
+        room_row = await (await conn.execute(select(Room).where(Room.id == user_row['room_id']))).fetchone()
+        roomusers_rows = await (await conn.execute(select(RoomUser).where(RoomUser.room_id == room_row['id']))).fetchall()
+        roomvotes_rows = await (await conn.execute(select(RoomVote).where(RoomVote.room_id == room_row['id']))).fetchall()
+        if room_row['state'] != 'finished':
+            return web.json_response(status=400, data={'error': {'message': 'The game is not finished.'}})
+        else:
+            data = DateTimeJsonEncoder().encode({
+                'room_id': room_row['id'],
+                'created': room_row['created'],
+                'closed': room_row['closed'],
+                'room_users': [
+                    [user['player_number'], user['id'], user['info'], user['state']] for user in roomusers_rows
+                ],
+                'votes': [
+                    [vote['lap'], vote['state'], vote['extra'], vote['result']] for vote in roomvotes_rows
+                ]
+            })
+            return web.json_response(status=200, text=data)
