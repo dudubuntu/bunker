@@ -121,7 +121,7 @@ async def room_create(request: web.Request, data:dict):
         return response  
 
 
-@game_sess_id_cookie_required
+# @game_sess_id_cookie_required
 @json_content_type_required
 @contains_fields_or_return_error_responce('room_id')
 async def room_info(request: web.Request, data: dict):
@@ -143,13 +143,14 @@ async def room_info(request: web.Request, data: dict):
     return web.json_response(status=200, text=DateTimeJsonEncoder().encode(data))
 
 
-@game_sess_id_cookie_required
+# @game_sess_id_cookie_required
 @json_content_type_required
 @contains_fields_or_return_error_responce('room_id')
 async def room_delete(request: web.Request, data:dict):
     room_id = data['room_id']
     async with request.app['db'].acquire() as conn:
-        row = await get_user_row_in_room_or_error_response(conn, data['room_id'], request.cookies['game_sess_id'])
+        # row = await get_user_row_in_room_or_error_response(conn, data['room_id'], request.cookies['game_sess_id'])
+        row = await get_user_row_in_room_or_error_response(conn, data['room_id'], data['game_sess_id'])
         if isinstance(row, web.Response):
             return row
 
@@ -166,12 +167,13 @@ async def room_delete(request: web.Request, data:dict):
     return web.json_response(status=200, data={'message': 'Room was deleted'})
 
 
-@game_sess_id_cookie_required
+# @game_sess_id_cookie_required
 @json_content_type_required
 @contains_fields_or_return_error_responce('room_id', 'new_username')
 async def player_change_username(request: web.Request, data:dict):
     async with request.app['db'].acquire() as conn:
-        user_row = await get_user_row_in_room_or_error_response(conn, data['room_id'], request.cookies['game_sess_id'])
+        # user_row = await get_user_row_in_room_or_error_response(conn, data['room_id'], request.cookies['game_sess_id'])
+        user_row = await get_user_row_in_room_or_error_response(conn, data['room_id'], data['game_sess_id'])
         if isinstance(user_row, web.Response):
             return user_row
 
@@ -196,12 +198,13 @@ async def player_change_username(request: web.Request, data:dict):
         return web.json_response(status=200, data={'error': {'message': 'Username was changed'}})
 
 
-@game_sess_id_cookie_required
+# @game_sess_id_cookie_required
 @json_content_type_required
 @contains_fields_or_return_error_responce('room_id', 'aim_username')
 async def player_kick(request: web.Request, data: dict):
     async with request.app['db'].acquire() as conn:
-        user_row = await get_user_row_in_room_or_error_response(conn, data['room_id'], request.cookies['game_sess_id'])
+        # user_row = await get_user_row_in_room_or_error_response(conn, data['room_id'], request.cookies['game_sess_id'])
+        user_row = await get_user_row_in_room_or_error_response(conn, data['room_id'], data['game_sess_id'])
         if isinstance(user_row, web.Response):
             return user_row
 
@@ -224,28 +227,31 @@ async def player_kick(request: web.Request, data: dict):
         return web.json_response(status=200, data={'message': f'User {data["aim_username"]} was successfully kicked.'})
 
 
-@game_sess_id_cookie_required
+# @game_sess_id_cookie_required
 @json_content_type_required
 @contains_fields_or_return_error_responce('room_id')
 async def player_ready(request: web.Request, data: dict):
     async with request.app['db'].acquire() as conn:
-        user_row = await get_user_row_in_room_or_error_response(conn, data['room_id'], request.cookies['game_sess_id'])
+        # user_row = await get_user_row_in_room_or_error_response(conn, data['room_id'], request.cookies['game_sess_id'])
+        user_row = await get_user_row_in_room_or_error_response(conn, data['room_id'], data['game_sess_id'])
         if isinstance(user_row, web.Response):
             return user_row
 
-        result = await conn.execute(update(RoomUser).values(state=ROOMUSER_STATES['ready']).where(RoomUser.room_id == data['room_id']).where(RoomUser.game_sess_id == request.cookies['game_sess_id']))
+        # result = await conn.execute(update(RoomUser).values(state=ROOMUSER_STATES['ready']).where(RoomUser.room_id == data['room_id']).where(RoomUser.game_sess_id == request.cookies['game_sess_id']))
+        result = await conn.execute(update(RoomUser).values(state=ROOMUSER_STATES['ready']).where(RoomUser.room_id == data['room_id']).where(RoomUser.game_sess_id == data['game_sess_id']))
         if result.rowcount == 0:
             return web.json_response(status=500, data={'error': {'message': 'Something went wrong.'}})
 
         return web.json_response(status=200, data={'message': 'You`re ready!'})
 
 
-@game_sess_id_cookie_required
+# @game_sess_id_cookie_required
 @json_content_type_required
 @contains_fields_or_return_error_responce('room_id')
 async def game_start(request: web.Request, data:dict):
     async with request.app['db'].acquire() as conn:
-        user_row = await get_user_row_in_room_or_error_response(conn, data['room_id'], request.cookies['game_sess_id'])
+        # user_row = await get_user_row_in_room_or_error_response(conn, data['room_id'], request.cookies['game_sess_id'])
+        user_row = await get_user_row_in_room_or_error_response(conn, data['room_id'], data['game_sess_id'])
         if isinstance(user_row, web.Response):
             return user_row
 
@@ -275,12 +281,13 @@ async def game_start(request: web.Request, data:dict):
         return web.json_response(status=200, data={'message': 'The game is started'})
 
 
-@game_sess_id_cookie_required
+# @game_sess_id_cookie_required
 @json_content_type_required
 @contains_fields_or_return_error_responce('room_id')
 async def game_info(request: web.Request, data:dict):
     async with request.app['db'].acquire() as conn:
-        user_row = await get_user_row_in_room_or_error_response(conn, data['room_id'], request.cookies['game_sess_id'])
+        # user_row = await get_user_row_in_room_or_error_response(conn, data['room_id'], request.cookies['game_sess_id'])
+        user_row = await get_user_row_in_room_or_error_response(conn, data['room_id'], data['game_sess_id'])
         if isinstance(user_row, web.Response):
             return user_row
             
@@ -308,12 +315,13 @@ async def game_info(request: web.Request, data:dict):
         return web.json_response(status=200, data=data)
 
 
-@game_sess_id_cookie_required
+# @game_sess_id_cookie_required
 @json_content_type_required
 @contains_fields_or_return_error_responce('room_id')
 async def player_get_current(request: web.Request, data:dict):
     async with request.app['db'].acquire() as conn:
-        user_row = await get_user_row_in_room_or_error_response(conn, data['room_id'], request.cookies['game_sess_id'])
+        # user_row = await get_user_row_in_room_or_error_response(conn, data['room_id'], request.cookies['game_sess_id'])
+        user_row = await get_user_row_in_room_or_error_response(conn, data['room_id'], data['game_sess_id'])
         if isinstance(user_row, web.Response):
             return user_row
 
@@ -332,12 +340,13 @@ async def player_get_current(request: web.Request, data:dict):
         return web.json_response(status=200, data=data)
 
 
-@game_sess_id_cookie_required
+# @game_sess_id_cookie_required
 @json_content_type_required
 @contains_fields_or_return_error_responce('room_id', 'open')
 async def player_open_chars(request: web.Request, data: dict):
     async with request.app['db'].acquire() as conn:
-        user_row = await get_user_row_in_room_or_error_response(conn, data['room_id'], request.cookies['game_sess_id'])
+        # user_row = await get_user_row_in_room_or_error_response(conn, data['room_id'], request.cookies['game_sess_id'])
+        user_row = await get_user_row_in_room_or_error_response(conn, data['room_id'], data['game_sess_id'])
         if isinstance(user_row, web.Response):
             return user_row
 
@@ -377,12 +386,13 @@ async def player_open_chars(request: web.Request, data: dict):
         return web.json_response(status=200, data={'message': 'Successfully opened.'})
 
 
-@game_sess_id_cookie_required
+# @game_sess_id_cookie_required
 @json_content_type_required
 @contains_fields_or_return_error_responce('room_id', 'votes')
 async def player_make_vote(request: web.Request, data: dict):
     async with request.app['db'].acquire() as conn:
-        user_row = await get_user_row_in_room_or_error_response(conn, data['room_id'], request.cookies['game_sess_id'])
+        # user_row = await get_user_row_in_room_or_error_response(conn, data['room_id'], request.cookies['game_sess_id'])
+        user_row = await get_user_row_in_room_or_error_response(conn, data['room_id'], data['game_sess_id'])
         if isinstance(user_row, web.Response):
             return user_row
 
@@ -452,12 +462,13 @@ async def player_make_vote(request: web.Request, data: dict):
         return web.json_response(status=200, data={"message": "Successfuly voted."})
 
 
-@game_sess_id_cookie_required
+# @game_sess_id_cookie_required
 @json_content_type_required
 @contains_fields_or_return_error_responce('room_id')
 async def game_votes_info(request: web.Request, data: dict):
     async with request.app['db'].acquire() as conn:
-        user_row = await get_user_row_in_room_or_error_response(conn, data['room_id'], request.cookies['game_sess_id'])
+        # user_row = await get_user_row_in_room_or_error_response(conn, data['room_id'], request.cookies['game_sess_id'])
+        user_row = await get_user_row_in_room_or_error_response(conn, data['room_id'], data['game_sess_id'])
         if isinstance(user_row, web.Response):
             return user_row
 
@@ -475,12 +486,13 @@ async def game_votes_info(request: web.Request, data: dict):
         return web.json_response(status=200, data=data)
 
 
-@game_sess_id_cookie_required
+# @game_sess_id_cookie_required
 @json_content_type_required
 @contains_fields_or_return_error_responce('room_id')
 async def game_results(request: web.Request, data: dict):
     async with request.app['db'].acquire() as conn:
-        user_row = await get_user_row_in_room_or_error_response(conn, data['room_id'], request.cookies['game_sess_id'])
+        # user_row = await get_user_row_in_room_or_error_response(conn, data['room_id'], request.cookies['game_sess_id'])
+        user_row = await get_user_row_in_room_or_error_response(conn, data['room_id'], data['game_sess_id'])
         if isinstance(user_row, web.Response):
             return user_row
 
