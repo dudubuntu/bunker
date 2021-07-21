@@ -74,8 +74,8 @@ def game_sess_id_cookie_required(func):
     """ """
     @wraps(func)
     async def wrapper(request, *args, **kwargs):
-        if not 'game_sess_id' in request.cookies:
-            return web.json_response(status=403, data={'error': {'message': 'game_sess_id cookies is required.'}})
+        # if not 'game_sess_id' in request.cookies:
+        #     return web.json_response(status=403, data={'error': {'message': 'game_sess_id cookies is required.'}})
         
         return await func(request, *args, **kwargs)
     return wrapper
