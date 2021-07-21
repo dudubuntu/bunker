@@ -117,7 +117,7 @@ async def room_create(request: web.Request, data:dict):
             room_user_id = await db_max_id(conn, RoomUser, 1, True)
             row = await conn.execute(insert(RoomUser).values(id=room_user_id, username=data['initiator'], player_number=1, info={}, opened='', state=ROOMUSER_STATES['ready'], card_opened_numbers='', room_id=room_id, game_sess_id=game_sess_id))
             
-        response.text = json.dumps({'message': 'Successfully created', 'room_id': room_id, 'password': data['password']})
+        response.text = json.dumps({'message': 'Successfully created', 'room_id': room_id, 'password': data['password'], 'game_sess_id': game_sess_id})
         return response  
 
 
