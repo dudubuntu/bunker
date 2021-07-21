@@ -8,3 +8,4 @@ Docker/bunker_proj/bunker_proj/static/rest_framework/*
 env.env
 TODO
 *.log*
+/Desing/*
