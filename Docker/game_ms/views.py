@@ -117,7 +117,7 @@ async def room_create(request: web.Request, data:dict):
             room_user_id = await db_max_id(conn, RoomUser, 1, True)
             row = await conn.execute(insert(RoomUser).values(id=room_user_id, username=data['initiator'], player_number=1, info={}, opened='', state=ROOMUSER_STATES['ready'], card_opened_numbers='', room_id=room_id, game_sess_id=game_sess_id))
             
-        response.text = json.dumps({'message': 'Successfully created', 'room_id': room_id})
+        response.text = json.dumps({'message': 'Successfully created', 'room_id': room_id, 'password': data['password']})
         return response  
 
 
@@ -317,6 +317,8 @@ async def player_get_current(request: web.Request, data:dict):
         if isinstance(user_row, web.Response):
             return user_row
 
+        room_row = await (await conn.execute(select(Room).where(Room.id == user_row['room_id']))).fetchone()
+
         data = {
             'room_id': user_row['room_id'],
             'username': user_row['username'],
@@ -325,6 +327,7 @@ async def player_get_current(request: web.Request, data:dict):
             'opened': user_row['opened'],
             'card_opened_numbers': user_row['card_opened_numbers'],
             'state': user_row['state'],
+            'is_owner': True if room_row['initiator'] == user_row['username'] else False
         }
         return web.json_response(status=200, data=data)
 
