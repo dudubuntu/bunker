@@ -32,7 +32,8 @@ async def room_connect(request: web.Request, data: dict):
         room_row = await (await conn.execute(select(Room).where(Room.id == data['room_id']).where(Room.password == data['password']))).fetchone()
         if not room_row:
             return web.json_response(status=400, data={'error': {'message': 'No such room with the provided room_id and password.'}})
-        
+        if room_row['state'] != ROOM_STATES['waiting']:
+            return web.json_response(status=400, data={'error': {'message': 'You are unable to connect to started or finished game.'}})
         room_id = room_row['id']
 
         response = web.json_response()
@@ -92,9 +93,6 @@ async def room_connect(request: web.Request, data: dict):
                 {'id': room_user_id, 'username': data['username'], 'player_number': 0, 'state': 'not_ready', 'room_id': room_id, 'game_sess_id': game_sess_id, 'info': {}, 'opened': '', 'card_opened_numbers': ''}
             ]))
 
-        #TODO добавлять ли редирект?
-        # location = ''
-        # raise web.HTTPFound()
         response.text = json.dumps({'message': 'Successfuly connected'})
         return response
 
@@ -133,8 +131,6 @@ async def room_info(request: web.Request, data: dict):
         if not row:
             return web.json_response(status=400, data={'error': {'message': 'Room is not exist.'}})
         
-
-        #TODO добавить в ответ поле connected
         room_users = await (await conn.execute(select(RoomUser.username, RoomUser.state).where(RoomUser.room_id == data['room_id']))).fetchall()
         logging.debug(room_users)
         connected = []
@@ -221,11 +217,11 @@ async def player_kick(request: web.Request, data: dict):
 
         result = await conn.execute(update(RoomUser).values(state=ROOMUSER_STATES['kicked']).where(RoomUser.room_id == data['room_id']).where(RoomUser.username == data['aim_username']))
         if result.rowcount == 0:
-            return web.json_response(status=500, data={'error': {'message': 'There is no user with the provider username.'}})
+            return web.json_response(status=400, data={'error': {'message': 'There is no user with the provider username.'}})
 
         #TODO Добавить транзакцию на проверку: если в комнате нет хотя бы одного пользователя в статусе не kicked, left то удалить комнату
 
-        return web.json_response(status=200, data={'error': {'message': f'User {data["aim_username"]} was successfully kicked.'}})
+        return web.json_response(status=200, data={'message': f'User {data["aim_username"]} was successfully kicked.'})
 
 
 @game_sess_id_cookie_required
@@ -265,14 +261,14 @@ async def game_start(request: web.Request, data:dict):
         async with conn.begin() as tr:
             await conn.execute(update(RoomUser).values(player_number=0, state=ROOMUSER_STATES['left']).where(RoomUser.room_id == room_row['id']).where(RoomUser.state != ROOMUSER_STATES['ready']))
             
-            i = 0
+            actual_players_quantity = 0
             for roomuser, order_number, char in zip(roomusers_rows, *order_chars_list):
                 result = await conn.execute(update(RoomUser).values(state=ROOMUSER_STATES['in_game'], player_number=order_number, info=char).where(RoomUser.room_id == room_row['id']).where(RoomUser.game_sess_id == roomuser['game_sess_id']))
-                i += 1
+                actual_players_quantity += 1
 
             await conn.execute(update(Room).values(state=ROOM_STATES['opening']).where(Room.id == room_row['id']))
 
-            if i < request.app['config']['GAME_MIN_PLAYERS_QUANTITY']:
+            if actual_players_quantity < request.app['config']['GAME_MIN_PLAYERS_QUANTITY']:
                 await tr.rollback()
                 return web.json_response(status=400, data={'error': {'message': 'Not enough users to start the game'}})
 
@@ -425,9 +421,6 @@ async def player_make_vote(request: web.Request, data: dict):
 
             extra['second_lap'].update({user_row['username']: data['votes']})
 
-            logging.debug(len(extra['second_lap']))
-            logging.debug(len(roomuser_row))
-            logging.debug(len(result))
             if len(extra['second_lap']) == len(roomuser_row) - len(result):
                 votes = []
                 for user_votes in extra['second_lap'].values():
