@@ -1,17 +1,82 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html >
+<html lang="ru-RU">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
-
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <link rel="stylesheet" href="static/web/main.min.css"/>
+    <script src="static/web/main.min.js" defer=""></script>
     <title>Bunker</title>
   </head>
   <body>
-    <button type="button" class="btn btn-primary">Начать игру</button>
-    <button type="button" class="btn btn-light">Присоединиться</button>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+    <div>
+    </div>
+    <main class="mainContent">
+      <div class="base page active">
+        <div class="container">
+          <h1 class="title-logo">b<span>u</span>nker</h1>
+          <div class="start-btns"><a class="btn" href="#/create" data-href="#/create" onclick="locationResolver(this.dataset.href)">Создать комнату</a><a class="btn" href="#/join" data-href="#/join" onclick="locationResolver(this.dataset.href)">Присоединиться</a></div>
+        </div><img class="main_img" src="./assets/images/main.png"/>
+      </div>
+      <div class="game">
+        <div class="container">
+          <h1 class="title-logo">game</h1>
+        </div>
+      </div>
+      <section class="join">
+        <button class="back">➥</button>
+        <div class="container">
+          <h1 class="title">join-room</h1>
+          <form class="form join__form">
+            <label class="ph-box form__box">
+              <p class="placeHolder">ваш ник:</p>
+              <input class="nickname" type="text" required="required"/>
+            </label>
+            <label class="ph-box form__box">
+              <p class="placeHolder">номер комнаты:</p>
+              <input class="room" type="text" required="required"/>
+            </label>
+            <label class="ph-box form__box">
+              <p class="placeHolder">пароль:</p>
+              <input class="password" type="text" required="required"/>
+            </label>
+            <button type="submit">отправить</button>
+          </form>
+        </div>
+      </section>
+      <section class="create">
+        <button class="back">➥</button>
+        <div class="container">
+          <h1 class="title">create-room</h1>
+          <form class="form create__form">
+            <label class="ph-box form__box">
+              <p class="placeHolder">кол-во игроков:</p>
+              <input class="quantity_players" type="text" required="required"/>
+            </label>
+            <label class="ph-box form__box">
+              <p class="placeHolder">ваш ник:</p>
+              <input class="initiator" type="text" required="required"/>
+            </label>
+            <label class="ph-box form__box">
+              <p class="placeHolder">пароль:</p>
+              <input class="password" type="text" required="required"/>
+            </label>
+            <label class="ph-box form__box">
+              <p class="placeHolder">location:</p>
+              <input class="location" type="text" required="required"/>
+            </label>
+            <button type="submit">отправить</button>
+          </form>
+        </div>
+      </section>
+      <div class="waiting">
+        <div class="container">
+          <h1 class="title">wating</h1>
+          <ul class="list">
+            <li class="el">1 text</li>
+          </ul>
+          <button class="start-game">start game</button>
+        </div>
+      </div>
+    </main>
   </body>
 </html>
