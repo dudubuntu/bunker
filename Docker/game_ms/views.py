@@ -308,6 +308,7 @@ async def game_start(request: web.Request, data:dict):
         order_chars_list = [*init_game(len(roomusers_rows))]
 
         async with conn.begin() as tr:
+            #TODO добавить в where не только != ready, но и kicked
             await conn.execute(update(RoomUser).values(player_number=0, state=ROOMUSER_STATES['left']).where(RoomUser.room_id == room_row['id']).where(RoomUser.state != ROOMUSER_STATES['ready']))
             
             actual_players_quantity = 0
@@ -338,7 +339,8 @@ async def game_info(request: web.Request, data:dict):
         users_rows = await (await conn.execute(select(RoomUser).where(RoomUser.room_id == data['room_id']).where(RoomUser.state == ROOMUSER_STATES['in_game']))).fetchall()
 
         data = {
-            'room_id': room_row['id'],
+            'id': room_row['id'],
+            'initiator': room_row['initiator'],
             'state': room_row['state'],
             'lap': room_row['lap'],
             'turn': room_row['turn'],
