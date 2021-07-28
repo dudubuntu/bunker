@@ -1,0 +1,29 @@
+---------DB---------
+
+room
+    id              ManyToMany User
+    initiator       # nickname
+    state           # [waiting, opening, voting, finished]
+    turn            # н игрока чей ход
+    lap             # круг, чтобы высчитать, сколько характеристик надо вскрывать
+    quantity_players
+    result
+    created
+    updated
+    closed
+
+room_user
+    room_id
+    login
+    username
+    player_number
+    info    {}      # все характеристики + карты (с номерами)
+    opened  []      # вскрытые характеристики ["bio", "profession", ...]
+    status          # [in_game, kicked]
+    card_opened_numbers     []
+
+room_vote
+    room_id
+    vote_lap
+    state       # [waiting_first_time, first_time_done, waiting_second_time, done]      # waiting second time - когда в первый раз голоса распределились поровну
+    extra   [{"initiator": "", "votes": ["username_aim1", ...]}]
