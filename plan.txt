@@ -98,6 +98,7 @@ c 4** статусами приходит json вида {"error": {"message": "�
     room_connect {"room_id": "", "password": "", "username": ""}    200 или 403
 
 Комната
+    room_fill_players {"room_id": ""}       Работает только для комнат в статусе waiting и наполняет комнату до максимума
     room_create {"initiator": "", "password": "", "quantity_players": "", "location": ""}       Response {"message": "Successfully created", "room_id": 12345}
     room_delete {"room_id": ""}    200 или 400
     room_info {"room_id": ""}      response {"id": "", "initiator": "", "state": "waiting", "connected": [{"username": "", "state": ""}, ]}

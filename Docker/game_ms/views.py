@@ -16,6 +16,38 @@ from game_help import DATA
 
 
 @json_content_type_required
+@contains_fields_or_return_error_responce('room_id')
+async def room_fill_players(request: web.Request, data: dict):
+    """
+    Наполнить комнату тестовыми игроками
+    """
+
+    #TODO добавить проверку на статус комнаты - впускать только в статусе waiting
+
+    async with request.app['db'].acquire() as conn:
+        room_row = await (await conn.execute(select(Room).where(Room.id == data['room_id']))).fetchone()
+        if not room_row:
+            return web.json_response(status=400, data={'error': {'message': 'No such room with the provided room_id.'}})
+        if room_row['state'] != ROOM_STATES['waiting']:
+            return web.json_response(status=400, data={'error': {'message': 'You are able only to add users to games with "waiting" state.'}})
+
+        roomusers_rows = await (await conn.execute(select(RoomUser).filter((RoomUser.state == 'ready') | (RoomUser.state == 'not_ready')))).fetchall()
+
+        async with conn.begin() as tr:
+            room_user_id = await db_max_id(conn, RoomUser, 1, True)
+            for i in range(len(roomusers_rows) + 1, room_row['quantity_players'] + 1):
+                game_sess_id = jwt.encode(
+                    payload = {'exp': datetime.datetime.utcnow() + datetime.timedelta(seconds=request.app['config']['TOKEN_EXPIRED_SECONDS'])},
+                    key = request.app['config']['TOKEN_APP_KEY'])
+                await conn.execute(insert(RoomUser, [
+                    {'id': room_user_id, 'username': f'user-{i}', 'player_number': 0, 'state': 'ready', 'room_id': room_row['id'], 'game_sess_id': game_sess_id, 'info': {}, 'opened': '', 'card_opened_numbers': ''}
+                ]))
+                room_user_id += 1
+
+        return web.json_response(status=200, data={'message': 'Successfuly filled'})
+
+
+@json_content_type_required
 @contains_fields_or_return_error_responce('room_id', 'password', 'username')
 async def room_connect(request: web.Request, data: dict):
     """
