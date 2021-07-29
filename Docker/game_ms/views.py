@@ -31,8 +31,7 @@ async def room_fill_players(request: web.Request, data: dict):
         if room_row['state'] != ROOM_STATES['waiting']:
             return web.json_response(status=400, data={'error': {'message': 'You are able only to add users to games with "waiting" state.'}})
 
-        roomusers_rows = await (await conn.execute(select(RoomUser).filter((RoomUser.state == 'ready') | (RoomUser.state == 'not_ready')))).fetchall()
-
+        roomusers_rows = await (await conn.execute(select(RoomUser).where(RoomUser.room_id == room_row['id']).filter((RoomUser.state == 'ready') | (RoomUser.state == 'not_ready')))).fetchall()
         async with conn.begin() as tr:
             room_user_id = await db_max_id(conn, RoomUser, 1, True)
             for i in range(len(roomusers_rows) + 1, room_row['quantity_players'] + 1):
