@@ -33,16 +33,22 @@ async def room_fill_players(request: web.Request, data: dict):
             return web.json_response(status=400, data={'error': {'message': 'You are able only to add users to games with "waiting" state.'}})
 
         roomusers_rows = await (await conn.execute(select(RoomUser).where(RoomUser.room_id == room_row['id']).filter((RoomUser.state == 'ready') | (RoomUser.state == 'not_ready')))).fetchall()
+        inserted_users = {}
         async with conn.begin() as tr:
             room_user_id = await db_max_id(conn, RoomUser, 1, True)
             for i in range(len(roomusers_rows) + 1, room_row['quantity_players'] + 1):
                 game_sess_id = str(uuid.uuid1())
+                username = f'user-{i}'
                 await conn.execute(insert(RoomUser, [
-                    {'id': room_user_id, 'username': f'user-{i}', 'player_number': 0, 'state': 'ready', 'room_id': room_row['id'], 'game_sess_id': game_sess_id, 'info': {}, 'opened': '', 'card_opened_numbers': ''}
+                    {'id': room_user_id, 'username': username, 'player_number': 0, 'state': 'ready', 'room_id': room_row['id'], 'game_sess_id': game_sess_id, 'info': {}, 'opened': '', 'card_opened_numbers': ''}
                 ]))
+                inserted_users.update({username: game_sess_id})
                 room_user_id += 1
-
-        return web.json_response(status=200, data={'message': 'Successfuly filled'})
+        
+        data_to_response = {'message': 'Successfuly filled'}
+        if data.get('debug', False) == True:
+            data_to_response['players'] = inserted_users
+        return web.json_response(status=200, data=data_to_response)
 
 
 @json_content_type_required
@@ -390,10 +396,10 @@ async def player_open_chars(request: web.Request, data: dict):
             return user_row
 
         room_row = await (await conn.execute(select(Room).where(Room.id == user_row['room_id']))).fetchone()
-        if user_row['player_number'] != room_row['turn']:
-            return web.json_response(status=400, data={'error': {'message': 'Currently it is not your turn.'}})
         if room_row['state'] != ROOM_STATES['opening']:
             return web.json_response(status=400, data={'error': {'message': f'The game is currrently in {room_row["state"]} state.'}})
+        if user_row['player_number'] != room_row['turn']:
+            return web.json_response(status=400, data={'error': {'message': 'Currently it is not your turn.'}})
         
         roomusers_rows = await (await conn.execute(select(RoomUser).where(RoomUser.room_id == room_row['id']).where(RoomUser.state == ROOMUSER_STATES['in_game']).order_by(RoomUser.player_number))).fetchall()
 
