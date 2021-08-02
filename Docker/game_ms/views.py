@@ -7,6 +7,7 @@ from functools import wraps
 import json
 import datetime
 import jwt
+import uuid
 import logging
 import random
 
@@ -35,9 +36,7 @@ async def room_fill_players(request: web.Request, data: dict):
         async with conn.begin() as tr:
             room_user_id = await db_max_id(conn, RoomUser, 1, True)
             for i in range(len(roomusers_rows) + 1, room_row['quantity_players'] + 1):
-                game_sess_id = jwt.encode(
-                    payload = {'exp': datetime.datetime.utcnow() + datetime.timedelta(seconds=request.app['config']['TOKEN_EXPIRED_SECONDS'])},
-                    key = request.app['config']['TOKEN_APP_KEY'])
+                game_sess_id = str(uuid.uuid1())
                 await conn.execute(insert(RoomUser, [
                     {'id': room_user_id, 'username': f'user-{i}', 'player_number': 0, 'state': 'ready', 'room_id': room_row['id'], 'game_sess_id': game_sess_id, 'info': {}, 'opened': '', 'card_opened_numbers': ''}
                 ]))
@@ -68,9 +67,7 @@ async def room_connect(request: web.Request, data: dict):
         room_id = room_row['id']
 
         response = web.json_response()
-        game_sess_id = jwt.encode(
-            payload = {'exp': datetime.datetime.utcnow() + datetime.timedelta(seconds=request.app['config']['TOKEN_EXPIRED_SECONDS'])},
-            key = request.app['config']['TOKEN_APP_KEY'])
+        game_sess_id = str(uuid.uuid1())
         room_user_id = await db_max_id(conn, RoomUser, 1, True)
         await conn.execute(insert(RoomUser, [
             {'id': room_user_id, 'username': data['username'], 'player_number': 0, 'state': 'not_ready', 'room_id': room_id, 'game_sess_id': game_sess_id, 'info': {}, 'opened': '', 'card_opened_numbers': ''}
@@ -151,9 +148,7 @@ async def room_create(request: web.Request, data:dict):
             response = web.json_response()
             game_sess_id = request.cookies.get('game_sess_id', 0)
             if not 'game_sess_id' in request.cookies:
-                game_sess_id = jwt.encode(
-                    payload = {'exp': datetime.datetime.utcnow() + datetime.timedelta(seconds=request.app['config']['TOKEN_EXPIRED_SECONDS'])},
-                    key = request.app['config']['TOKEN_APP_KEY'])
+                game_sess_id = str(uuid.uuid1())
                 response.set_cookie('game_sess_id', game_sess_id)
 
             room_user_id = await db_max_id(conn, RoomUser, 1, True)
