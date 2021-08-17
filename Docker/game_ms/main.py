@@ -2,7 +2,6 @@ from aiohttp import web
 import aiohttp_cors
 import aiohttp_session
 import logging
-import pytest
 
 from routers import setup_routers
 from config import APP_CONFIG
@@ -43,7 +42,5 @@ async def init_app():
     logging.basicConfig(filename=APP_CONFIG['LOG_FILENAME'], format='[%(asctime)s] [%(process)d] [%(levelname)s] [%(funcName)s] %(message)s', level=APP_CONFIG['LOG_LEVEL'])
 
     app = await return_app()
-
-    pytest.main(['tests/tests.py', '-q'])
 
     return app
