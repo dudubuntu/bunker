@@ -336,6 +336,12 @@ async def game_info(request: web.Request, data:dict):
             return user_row
             
         room_row = await (await conn.execute(select(Room).where(Room.id == data['room_id']))).fetchone()
+        if room_row['state'] not in [
+                                    ROOM_STATES['opening'],
+                                    ROOM_STATES['voting'],
+                                    ROOM_STATES['finished']]:
+            return web.json_response(status=400, data={'error': {'message': 'The room must be in \'games\' states'}})
+
         users_rows = await (await conn.execute(select(RoomUser).where(RoomUser.room_id == data['room_id']).where(RoomUser.state == ROOMUSER_STATES['in_game']))).fetchall()
 
         data = {
