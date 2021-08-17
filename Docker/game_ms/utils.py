@@ -60,7 +60,7 @@ def contains_fields_or_return_error_responce(*fields):
             for field in fields:
                 assert isinstance(field, str)
                 
-            errors = list(set(fields).difference(data))
+            errors = [field for field in fields if field not in data]
             if errors:
                 return web.json_response(status=400, data={'error': {'message': 'No required fields in request', 'extra': errors}})
             else:
